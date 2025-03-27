@@ -64,27 +64,27 @@ export class ProcessorController {
     return { success: true };
   }
 
-  @Get('api/devices/:deviceAddress/status')
+  @Get('api/devices/:address/status')
   async getDeviceStatusApi(
-    @Param('deviceAddress') deviceAddress: string,
+    @Param('address') address: string,
   ): Promise<StatusResponse> {
-    return this.processorService.getDeviceStatus(deviceAddress);
+    return this.processorService.getDeviceStatus(address);
   }
 
-  @Get('api/devices/:deviceAddress/history')
+  @Get('api/devices/:address/history')
   async getDeviceHistoryApi(
-    @Param('deviceAddress') deviceAddress: string,
+    @Param('address') address: string,
     @Query('limit') limit: number = 10,
   ): Promise<HistoryResponse> {
-    return this.processorService.getDeviceHistory(deviceAddress, limit);
+    return this.processorService.getDeviceHistory(address, limit);
   }
 
-  @Get('devices/status')
-  async getAllDeviceStatuses(): Promise<HistoryResponse> {
+  @Get('api/devices/status')
+  async getAllDeviceStatusesApi(): Promise<HistoryResponse> {
     return this.processorService.getAllDeviceStatuses();
   }
 
-  @Get('list')
+  @Get('web/list')
   async getDeviceList(@Res() res: Response) {
     const { devices } = await this.processorService.getDeviceList();
     const html = `
@@ -201,9 +201,9 @@ export class ProcessorController {
                         }
                       </td>
                       <td>
-                        <a href="/processor/${device.address}/status" class="status-link">Status</a> |
-                        <a href="/processor/${device.address}/history" class="status-link">History</a> |
-                        <a href="/processor/${device.address}/graph" class="status-link">Graph</a>
+                        <a href="/processor/web/${device.address}/status" class="status-link">Status</a> |
+                        <a href="/processor/web/${device.address}/history" class="status-link">History</a> |
+                        <a href="/processor/web/${device.address}/graph" class="status-link">Graph</a>
                       </td>
                     </tr>
                   `;
@@ -218,7 +218,7 @@ export class ProcessorController {
     res.send(html);
   }
 
-  @Get(':address/status')
+  @Get('web/:address/status')
   async getDeviceStatus(
     @Param('address') address: string,
     @Res() res: Response,
@@ -314,7 +314,7 @@ export class ProcessorController {
                 <div class="timestamp">${new Date(deviceStatus.timestamp).toLocaleString()}</div>
               </div>
             </div>
-            <a href="/processor/list" class="back-link">← Back to Device List</a>
+            <a href="/processor/web/list" class="back-link">← Back to Device List</a>
           </div>
         </body>
       </html>
@@ -322,7 +322,7 @@ export class ProcessorController {
     res.send(html);
   }
 
-  @Get(':address/history')
+  @Get('web/:address/history')
   async getDeviceHistory(
     @Param('address') address: string,
     @Res() res: Response,
@@ -418,7 +418,7 @@ export class ProcessorController {
                   .join('')}
               </tbody>
             </table>
-            <a href="/processor/list" class="back-link">← Back to Device List</a>
+            <a href="/processor/web/list" class="back-link">← Back to Device List</a>
           </div>
         </body>
       </html>
@@ -426,7 +426,7 @@ export class ProcessorController {
     res.send(html);
   }
 
-  @Get(':address/graph')
+  @Get('web/:address/graph')
   async getDeviceHistoryGraph(
     @Param('address') address: string,
     @Res() res: Response,
