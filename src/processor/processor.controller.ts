@@ -3,6 +3,9 @@ import { ProcessorService } from './processor.service';
 import { BatchService } from './batch.service';
 import { DeviceStatusDto } from './dto/device-status.dto';
 import { Response } from 'express';
+import { CacheService } from './cache.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface CheckInRequest {
   deviceAddress: string;
@@ -49,6 +52,7 @@ export class ProcessorController {
   constructor(
     private readonly processorService: ProcessorService,
     private readonly batchService: BatchService,
+    private readonly cacheService: CacheService,
   ) {}
 
   @Post('check-in')
@@ -226,7 +230,8 @@ export class ProcessorController {
                       </td>
                       <td>
                         <a href="/processor/devices/${device.address}/status" class="status-link">Status</a> |
-                        <a href="/processor/devices/${device.address}/history" class="status-link">History</a>
+                        <a href="/processor/devices/${device.address}/history" class="status-link">History</a> |
+                        <a href="/processor/history/${device.address}/graph" class="status-link">Graph</a>
                       </td>
                     </tr>
                   `;
@@ -241,5 +246,45 @@ export class ProcessorController {
 
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
+  }
+
+  @Get('history/:address/graph')
+  async getDeviceHistoryGraph(
+    @Param('address') address: string,
+    @Res() res: Response,
+  ) {
+    try {
+      // Try both development and production paths
+      const possiblePaths = [
+        path.join(__dirname, 'templates', 'device-history.html'),
+        path.join(
+          process.cwd(),
+          'dist',
+          'src',
+          'processor',
+          'templates',
+          'device-history.html',
+        ),
+      ];
+
+      let templatePath = null;
+      for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+          templatePath = p;
+          break;
+        }
+      }
+
+      if (!templatePath) {
+        throw new Error('Template file not found');
+      }
+
+      const template = fs.readFileSync(templatePath, 'utf-8');
+      res.setHeader('Content-Type', 'text/html');
+      res.send(template);
+    } catch (error) {
+      console.error('Error serving template:', error);
+      res.status(500).send('Error loading template');
+    }
   }
 }
