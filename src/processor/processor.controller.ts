@@ -84,65 +84,43 @@ export class ProcessorController {
   }
 
   @Get('list')
-  async getDeviceList(@Res() res: Response): Promise<void> {
-    const devices = await this.processorService.getDeviceList();
-
+  async getDeviceList(@Res() res: Response) {
+    const { devices } = await this.processorService.getDeviceList();
     const html = `
       <!DOCTYPE html>
-      <html lang="en">
+      <html>
         <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Device List - Acurast Processor Management</title>
+          <title>Device List</title>
           <style>
             body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-              line-height: 1.6;
-              max-width: 1400px;
+              font-family: Arial, sans-serif;
+              margin: 20px;
+              background: #f5f5f5;
+            }
+            .container {
+              max-width: 1200px;
               margin: 0 auto;
-              padding: 2rem;
-              color: #333;
-            }
-            h1 {
-              color: #2c3e50;
-              border-bottom: 2px solid #eee;
-              padding-bottom: 0.5rem;
-            }
-            .back-link {
-              display: inline-block;
-              margin-bottom: 1rem;
-              color: #007bff;
-              text-decoration: none;
-            }
-            .back-link:hover {
-              text-decoration: underline;
-            }
-            .table-container {
-              overflow-x: auto;
-              margin: 2rem 0;
-              background: #fff;
-              border: 1px solid #e9ecef;
+              background: white;
+              padding: 20px;
               border-radius: 8px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             table {
               width: 100%;
               border-collapse: collapse;
-              font-size: 0.9rem;
+              margin-top: 20px;
             }
             th, td {
-              padding: 0.75rem 1rem;
+              padding: 12px;
               text-align: left;
-              border-bottom: 1px solid #e9ecef;
+              border-bottom: 1px solid #ddd;
             }
             th {
-              background: #f8f9fa;
+              background-color: #f8f9fa;
               font-weight: 600;
-              color: #2c3e50;
-              white-space: nowrap;
             }
             tr:hover {
-              background: #f8f9fa;
+              background-color: #f8f9fa;
             }
             .status-link {
               color: #007bff;
@@ -151,82 +129,75 @@ export class ProcessorController {
             .status-link:hover {
               text-decoration: underline;
             }
-            .battery-level {
-              display: inline-flex;
-              align-items: center;
-              gap: 0.5rem;
+            .charging {
+              color: #28a745;
+              font-weight: 500;
             }
-            .battery-level::before {
-              content: '';
-              display: inline-block;
-              width: 1rem;
-              height: 0.5rem;
-              background: currentColor;
-              border-radius: 2px;
+            .not-charging {
+              color: #dc3545;
             }
-            .battery-level[data-level="high"] { color: #28a745; }
-            .battery-level[data-level="medium"] { color: #ffc107; }
-            .battery-level[data-level="low"] { color: #dc3545; }
             .network-type {
-              display: inline-flex;
-              align-items: center;
-              gap: 0.5rem;
+              text-transform: capitalize;
             }
-            .network-type::before {
-              content: '';
-              display: inline-block;
-              width: 0.5rem;
-              height: 0.5rem;
-              border-radius: 50%;
-              background: currentColor;
+            .unknown-network {
+              color: #6c757d;
+              font-style: italic;
             }
-            .network-type[data-type="wifi"] { color: #28a745; }
-            .network-type[data-type="cellular"] { color: #007bff; }
-            .network-type[data-type="usb"] { color: #6c757d; }
-            .network-type[data-type="offline"] { color: #dc3545; }
-            .timestamp {
-              font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            .battery-good {
+              color: #28a745;
+              font-weight: 500;
+            }
+            .battery-warning {
+              color: #ffc107;
+              font-weight: 500;
+            }
+            .battery-critical {
+              color: #dc3545;
+              font-weight: 500;
             }
           </style>
         </head>
         <body>
-          <a href="/" class="back-link">← Back to Dashboard</a>
-          <h1>Device List</h1>
-          
-          <div class="table-container">
+          <div class="container">
+            <h1>Device List</h1>
             <table>
               <thead>
                 <tr>
                   <th>Address</th>
-                  <th>Last Seen</th>
-                  <th>Battery</th>
+                  <th>Battery Level</th>
+                  <th>Charging</th>
                   <th>Network</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                ${devices.devices
-                  .map((device) => {
-                    const batteryLevel = device.batteryLevel;
-                    const batteryLevelClass =
-                      batteryLevel > 50
-                        ? 'high'
-                        : batteryLevel > 20
-                          ? 'medium'
-                          : 'low';
+                ${devices
+                  .sort(
+                    (
+                      a: ListResponse['devices'][0],
+                      b: ListResponse['devices'][0],
+                    ) => a.address.localeCompare(b.address),
+                  )
+                  .map((device: ListResponse['devices'][0]) => {
+                    const batteryClass =
+                      device.batteryLevel >= 40 && device.batteryLevel <= 70
+                        ? 'battery-good'
+                        : device.batteryLevel > 70
+                          ? 'battery-warning'
+                          : 'battery-critical';
                     return `
                     <tr>
-                      <td><code>${device.address}</code></td>
-                      <td class="timestamp">${new Date(device.lastSeen).toLocaleString()}</td>
-                      <td>
-                        <span class="battery-level" data-level="${batteryLevelClass}">
-                          ${batteryLevel}% ${device.isCharging ? '(Charging)' : ''}
-                        </span>
+                      <td>${device.address}</td>
+                      <td class="${batteryClass}">${device.batteryLevel}%</td>
+                      <td class="${device.isCharging ? 'charging' : 'not-charging'}">
+                        ${device.isCharging ? 'Charging' : 'Not Charging'}
                       </td>
                       <td>
-                        <span class="network-type" data-type="${device.networkType.toLowerCase()}">
-                          ${device.networkType} (${device.ssid})
-                        </span>
+                        ${
+                          device.networkType === 'unknown'
+                            ? '<span class="unknown-network">Unknown</span>'
+                            : `<span class="network-type">${device.networkType}</span>`
+                        }
                       </td>
                       <td>
                         <a href="/processor/devices/${device.address}/status" class="status-link">Status</a> |
@@ -243,8 +214,6 @@ export class ProcessorController {
         </body>
       </html>
     `;
-
-    res.setHeader('Content-Type', 'text/html');
     res.send(html);
   }
 
