@@ -19,7 +19,12 @@ import {
 } from './entities/temperature-reading.entity';
 import { DeepPartial } from 'typeorm';
 import { CacheService } from './cache.service';
-import { DeviceStatusDto } from './dto/device-status.dto';
+import {
+  DeviceStatusDto,
+  NetworkType as NetworkTypeEnum,
+  BatteryHealthState,
+  TemperatureType as TemperatureTypeEnum,
+} from './types';
 
 @Injectable()
 export class ProcessorService {
@@ -56,7 +61,7 @@ export class ProcessorService {
 
   private async getOrCreateNetworkType(
     manager: EntityManager,
-    type: 'wifi' | 'cellular' | 'usb' | 'offline',
+    type: NetworkTypeEnum,
   ): Promise<NetworkType> {
     let networkType = await manager.findOne(NetworkType, {
       where: { type },
@@ -84,7 +89,7 @@ export class ProcessorService {
 
   private async getOrCreateBatteryHealth(
     manager: EntityManager,
-    state: 'good' | 'bad' | 'critical' | undefined,
+    state: BatteryHealthState | undefined,
   ): Promise<BatteryHealth | null> {
     if (!state) return null;
 
@@ -101,7 +106,7 @@ export class ProcessorService {
   private transformToDto(deviceStatus: DeviceStatus): DeviceStatusDto {
     const temperature: DeviceStatusDto['temperature'] = {};
     deviceStatus.temperatureReadings?.forEach((reading) => {
-      const type = reading.type.toLowerCase() as TemperatureType;
+      const type = reading.type.toLowerCase() as TemperatureTypeEnum;
       temperature[type] = reading.value;
     });
 
@@ -110,10 +115,8 @@ export class ProcessorService {
       timestamp: deviceStatus.timestamp,
       batteryLevel: deviceStatus.batteryLevel,
       isCharging: deviceStatus.isCharging,
-      batteryHealth: deviceStatus.batteryHealth
-        ?.state as DeviceStatusDto['batteryHealth'],
-      networkType: deviceStatus.networkType
-        .type as DeviceStatusDto['networkType'],
+      batteryHealth: deviceStatus.batteryHealth?.state as BatteryHealthState,
+      networkType: deviceStatus.networkType.type as NetworkTypeEnum,
       ssid: deviceStatus.ssid.name,
       temperature,
     };

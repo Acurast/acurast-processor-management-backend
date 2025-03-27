@@ -1,6 +1,14 @@
-import { NetworkType, BatteryHealthState, TemperatureReadings } from '../types';
+export type NetworkType = 'wifi' | 'cellular' | 'usb' | 'offline';
+export type BatteryHealthState = 'good' | 'bad' | 'critical';
 
-export class DeviceStatusDto {
+export interface TemperatureReadings {
+  battery?: number;
+  cpu?: number;
+  gpu?: number;
+  ambient?: number;
+}
+
+export interface DeviceStatusDto {
   address: string;
   timestamp: number;
   batteryLevel: number;
