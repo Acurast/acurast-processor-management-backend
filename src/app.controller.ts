@@ -1,12 +1,143 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Res } from '@nestjs/common';
 import { AppService } from './app.service';
+import { Response } from 'express';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  async getHomePage(@Res() res: Response): Promise<void> {
+    const stats = await this.appService.getStats();
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Acurast Processor Management</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+              line-height: 1.6;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 2rem;
+              color: #333;
+            }
+            h1 {
+              color: #2c3e50;
+              border-bottom: 2px solid #eee;
+              padding-bottom: 0.5rem;
+            }
+            .endpoint {
+              background: #f8f9fa;
+              padding: 1rem;
+              border-radius: 4px;
+              margin: 1rem 0;
+            }
+            code {
+              background: #e9ecef;
+              padding: 0.2rem 0.4rem;
+              border-radius: 3px;
+              font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            }
+            .method {
+              font-weight: bold;
+              color: #2c3e50;
+            }
+            .stats {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 1rem;
+              margin: 2rem 0;
+              width: 100%;
+            }
+            .stat-card {
+              background: #fff;
+              border: 1px solid #e9ecef;
+              border-radius: 8px;
+              padding: 1rem;
+              text-align: center;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              min-height: 120px;
+            }
+            .stat-value {
+              font-size: 2rem;
+              font-weight: bold;
+              color: #2c3e50;
+              margin: 0.5rem 0;
+            }
+            .stat-label {
+              color: #6c757d;
+              font-size: 0.9rem;
+            }
+            .last-updated {
+              text-align: right;
+              color: #6c757d;
+              font-size: 0.8rem;
+              margin-top: 1rem;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Acurast Processor Management API</h1>
+          <p>Welcome to the Acurast Processor Management API. This service manages device statuses and check-ins for Acurast processors.</p>
+          
+          <div class="stats">
+            <div class="stat-card">
+              <div class="stat-value">${stats.totalCheckIns}</div>
+              <div class="stat-label">Total Check-ins</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${stats.totalDevices}</div>
+              <div class="stat-label">Total Devices</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${stats.lastHourCheckIns}</div>
+              <div class="stat-label">Check-ins (Last Hour)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${stats.last24HoursCheckIns}</div>
+              <div class="stat-label">Check-ins (Last 24 Hours)</div>
+            </div>
+          </div>
+          
+          <h2>Available Endpoints</h2>
+          
+          <div class="endpoint">
+            <span class="method">POST</span> <code>/processor/check-in</code>
+            <p>Register a new device check-in with status information.</p>
+          </div>
+          
+          <div class="endpoint">
+            <span class="method">GET</span> <code>/processor/devices/:deviceAddress/status</code>
+            <p>Get the current status of a specific device.</p>
+          </div>
+          
+          <div class="endpoint">
+            <span class="method">GET</span> <code>/processor/devices/:deviceAddress/history</code>
+            <p>Get the history of status updates for a specific device.</p>
+          </div>
+          
+          <div class="endpoint">
+            <span class="method">GET</span> <code>/processor/devices/status</code>
+            <p>Get all device statuses across all devices.</p>
+          </div>
+
+          <div class="last-updated">
+            Last updated: ${new Date(stats.timestamp).toLocaleString()}
+          </div>
+        </body>
+      </html>
+    `;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
   }
 }
