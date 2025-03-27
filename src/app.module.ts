@@ -23,8 +23,9 @@ import { TemperatureReading } from './processor/entities/temperature-reading.ent
         Ssid,
         TemperatureReading,
       ],
-      synchronize: true, // Set to false in production
+      synchronize: true,
     }),
+    TypeOrmModule.forFeature([DeviceStatus, Processor]),
     ProcessorModule,
   ],
   controllers: [AppController],

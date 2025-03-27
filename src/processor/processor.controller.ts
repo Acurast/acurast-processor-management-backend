@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body, Query, Param } from '@nestjs/common';
 import { ProcessorService } from './processor.service';
 import { BatchService } from './batch.service';
+import { DeviceStatus } from './entities/device-status.entity';
 
 export interface CheckInRequest {
   deviceAddress: string;
@@ -24,11 +25,11 @@ export interface CheckInResponse {
 }
 
 export interface StatusResponse {
-  deviceStatus: CheckInResponse;
+  deviceStatus: DeviceStatus;
 }
 
 export interface HistoryResponse {
-  history: CheckInResponse[];
+  history: DeviceStatus[];
 }
 
 @Controller('processor')
@@ -59,5 +60,10 @@ export class ProcessorController {
     @Query('limit') limit: number = 10,
   ): Promise<HistoryResponse> {
     return this.processorService.getDeviceHistory(deviceAddress, limit);
+  }
+
+  @Get('devices/status')
+  async getAllDeviceStatuses(): Promise<HistoryResponse> {
+    return this.processorService.getAllDeviceStatuses();
   }
 }

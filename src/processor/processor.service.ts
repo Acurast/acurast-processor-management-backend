@@ -17,6 +17,7 @@ import {
   TemperatureType,
 } from './entities/temperature-reading.entity';
 import { DeepPartial } from 'typeorm';
+import { CacheService } from './cache.service';
 
 @Injectable()
 export class ProcessorService {
@@ -34,6 +35,7 @@ export class ProcessorService {
     @InjectRepository(TemperatureReading)
     private temperatureReadingRepository: Repository<TemperatureReading>,
     private dataSource: DataSource,
+    private cacheService: CacheService,
   ) {}
 
   private async getOrCreateProcessor(
@@ -119,17 +121,13 @@ export class ProcessorService {
 
       // Create device status
       const deviceStatus = transactionalEntityManager.create(DeviceStatus, {
-        processor: { id: processor.id } as DeepPartial<Processor>,
+        processor,
         timestamp: checkInRequest.timestamp,
         batteryLevel: checkInRequest.batteryLevel,
         isCharging: checkInRequest.isCharging,
-        batteryHealth: batteryHealth
-          ? ({ id: batteryHealth.id } as DeepPartial<BatteryHealth>)
-          : undefined,
-        networkType: networkType
-          ? ({ id: networkType.id } as DeepPartial<NetworkType>)
-          : undefined,
-        ssid: ssid ? ({ id: ssid.id } as DeepPartial<Ssid>) : undefined,
+        batteryHealth: batteryHealth || undefined,
+        networkType,
+        ssid,
         signature: checkInRequest.signature,
       } as DeepPartial<DeviceStatus>);
       await transactionalEntityManager.save(deviceStatus);
@@ -155,9 +153,32 @@ export class ProcessorService {
   }
 
   async getDeviceStatus(deviceAddress: string): Promise<StatusResponse> {
-    return {
-      deviceStatus: (await this.getDeviceHistory(deviceAddress, 1)).history[0],
-    };
+    // Check cache first
+    const cached = this.cacheService.getDeviceStatus(deviceAddress);
+    if (cached) {
+      return { deviceStatus: cached };
+    }
+
+    const latestStatus = await this.deviceStatusRepository
+      .createQueryBuilder('status')
+      .innerJoin('status.processor', 'processor')
+      .where('processor.address = :address', { address: deviceAddress })
+      .leftJoinAndSelect('status.networkType', 'networkType')
+      .leftJoinAndSelect('status.ssid', 'ssid')
+      .leftJoinAndSelect('status.batteryHealth', 'batteryHealth')
+      .leftJoinAndSelect('status.temperatureReadings', 'temperatureReadings')
+      .orderBy('status.timestamp', 'DESC')
+      .take(1)
+      .getOne();
+
+    if (!latestStatus) {
+      throw new NotFoundException('Device not found');
+    }
+
+    // Update cache
+    this.cacheService.setDeviceStatus(deviceAddress, latestStatus);
+
+    return { deviceStatus: latestStatus };
   }
 
   async getDeviceHistory(
@@ -182,9 +203,24 @@ export class ProcessorService {
     }
 
     return {
-      history: history.map(() => ({
-        success: true,
-      })),
+      history,
+    };
+  }
+
+  async getAllDeviceStatuses(): Promise<HistoryResponse> {
+    const history = await this.deviceStatusRepository.find({
+      order: { timestamp: 'DESC' },
+      relations: [
+        'processor',
+        'networkType',
+        'ssid',
+        'batteryHealth',
+        'temperatureReadings',
+      ],
+    });
+
+    return {
+      history,
     };
   }
 }

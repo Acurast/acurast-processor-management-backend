@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { CheckInRequest } from './processor.controller';
 import { Processor } from './entities/processor.entity';
@@ -11,18 +11,31 @@ import {
   TemperatureType,
 } from './entities/temperature-reading.entity';
 import { CacheService } from './cache.service';
-import { DeepPartial } from 'typeorm';
 
 @Injectable()
-export class BatchService {
+export class BatchService implements OnModuleInit, OnModuleDestroy {
   private readonly BATCH_SIZE = 1000; // Process 1000 check-ins at a time
+  private readonly BATCH_INTERVAL = 50; // Process batch every 50ms
   private checkInQueue: CheckInRequest[] = [];
   private processing = false;
+  private timer: NodeJS.Timeout;
 
   constructor(
     private dataSource: DataSource,
     private cacheService: CacheService,
   ) {}
+
+  onModuleInit() {
+    this.timer = setInterval(() => {
+      void this.processBatch();
+    }, this.BATCH_INTERVAL);
+  }
+
+  onModuleDestroy() {
+    if (this.timer) {
+      clearInterval(this.timer);
+    }
+  }
 
   async addToBatch(checkIn: CheckInRequest): Promise<void> {
     this.checkInQueue.push(checkIn);
@@ -82,20 +95,16 @@ export class BatchService {
 
       // Create device status
       const deviceStatus = manager.create(DeviceStatus, {
-        processor: { id: processor.id } as DeepPartial<Processor>,
+        processor,
         timestamp: checkIn.timestamp,
         batteryLevel: checkIn.batteryLevel,
         isCharging: checkIn.isCharging,
-        batteryHealth: batteryHealth
-          ? ({ id: batteryHealth.id } as DeepPartial<BatteryHealth>)
-          : undefined,
-        networkType: networkType
-          ? ({ id: networkType.id } as DeepPartial<NetworkType>)
-          : undefined,
-        ssid: ssid ? ({ id: ssid.id } as DeepPartial<Ssid>) : undefined,
+        batteryHealth: batteryHealth || undefined,
+        networkType,
+        ssid,
         signature: checkIn.signature,
-      } as DeepPartial<DeviceStatus>);
-      await manager.save(deviceStatus);
+      });
+      const savedDeviceStatus = await manager.save(deviceStatus);
 
       // Create temperature readings if provided
       if (checkIn.temperature) {
@@ -103,7 +112,7 @@ export class BatchService {
           .filter(([, value]) => value !== undefined)
           .map(([type, value]) =>
             manager.create(TemperatureReading, {
-              deviceStatus,
+              deviceStatus: savedDeviceStatus,
               type: type as TemperatureType,
               value,
             }),
@@ -111,8 +120,22 @@ export class BatchService {
         await manager.save(temperatureReadings);
       }
 
-      // Update cache
-      this.cacheService.setDeviceStatus(address, deviceStatus);
+      // Load the complete device status with all relations
+      const completeDeviceStatus = await manager.findOne(DeviceStatus, {
+        where: { id: savedDeviceStatus.id },
+        relations: [
+          'processor',
+          'networkType',
+          'ssid',
+          'batteryHealth',
+          'temperatureReadings',
+        ],
+      });
+
+      // Update cache with the complete device status
+      if (completeDeviceStatus) {
+        this.cacheService.setDeviceStatus(address, completeDeviceStatus);
+      }
     }
   }
 
