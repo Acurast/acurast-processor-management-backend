@@ -83,7 +83,6 @@ export class BatchService implements OnModuleInit, OnModuleDestroy {
   ): Promise<void> {
     // Get or create processor
     const processor = await this.getOrCreateProcessor(manager, address);
-    this.cacheService.setProcessor(processor);
 
     // Process each check-in
     for (const checkIn of checkIns) {
@@ -145,7 +144,9 @@ export class BatchService implements OnModuleInit, OnModuleDestroy {
   ): Promise<Processor> {
     // Check cache first
     const cached = this.cacheService.getProcessor(address);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
 
     let processor = await manager.findOne(Processor, {
       where: { address },
@@ -154,16 +155,20 @@ export class BatchService implements OnModuleInit, OnModuleDestroy {
       processor = manager.create(Processor, { address });
       processor = await manager.save(processor);
     }
+    // Update cache with the processor
+    this.cacheService.setProcessor(processor);
     return processor;
   }
 
   private async getOrCreateNetworkType(
     manager: EntityManager,
-    type: 'wifi' | 'cellular' | 'usb' | 'offline',
+    type: 'wifi' | 'cellular' | 'usb',
   ): Promise<NetworkType> {
     // Check cache first
     const cached = this.cacheService.getNetworkType(type);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
 
     let networkType = await manager.findOne(NetworkType, {
       where: { type },
@@ -172,6 +177,8 @@ export class BatchService implements OnModuleInit, OnModuleDestroy {
       networkType = manager.create(NetworkType, { type });
       networkType = await manager.save(networkType);
     }
+    // Update cache with the network type
+    this.cacheService.setNetworkType(networkType.type, networkType);
     return networkType;
   }
 
@@ -181,7 +188,9 @@ export class BatchService implements OnModuleInit, OnModuleDestroy {
   ): Promise<Ssid> {
     // Check cache first
     const cached = this.cacheService.getSsid(name);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
 
     let ssid = await manager.findOne(Ssid, {
       where: { name },
@@ -190,6 +199,8 @@ export class BatchService implements OnModuleInit, OnModuleDestroy {
       ssid = manager.create(Ssid, { name });
       ssid = await manager.save(ssid);
     }
+    // Update cache with the SSID
+    this.cacheService.setSsid(ssid.name, ssid);
     return ssid;
   }
 
@@ -201,7 +212,9 @@ export class BatchService implements OnModuleInit, OnModuleDestroy {
 
     // Check cache first
     const cached = this.cacheService.getBatteryHealth(state);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
 
     let batteryHealth = await manager.findOne(BatteryHealth, {
       where: { state },
@@ -210,6 +223,8 @@ export class BatchService implements OnModuleInit, OnModuleDestroy {
       batteryHealth = manager.create(BatteryHealth, { state });
       batteryHealth = await manager.save(batteryHealth);
     }
+    // Update cache with the battery health
+    this.cacheService.setBatteryHealth(batteryHealth.state, batteryHealth);
     return batteryHealth;
   }
 }

@@ -1,12 +1,16 @@
-import { NetworkType, BatteryHealthState, TemperatureReadings } from '../types';
+import {
+  NetworkTypeEnum,
+  BatteryHealthStateEnum,
+  TemperatureReadings,
+} from '../types';
 
 export class DeviceStatusDto {
   address: string;
   timestamp: number;
   batteryLevel: number;
   isCharging: boolean;
-  batteryHealth?: BatteryHealthState;
-  networkType: NetworkType;
+  batteryHealth?: BatteryHealthStateEnum;
+  networkType: NetworkTypeEnum;
   ssid: string;
   temperature?: TemperatureReadings;
 }

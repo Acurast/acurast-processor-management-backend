@@ -1,5 +1,5 @@
-export type NetworkType = 'wifi' | 'cellular' | 'usb' | 'offline';
-export type BatteryHealthState = 'good' | 'bad' | 'critical';
+export type NetworkTypeEnum = 'wifi' | 'cellular' | 'usb';
+export type BatteryHealthStateEnum = 'good' | 'bad' | 'critical';
 
 export interface TemperatureReadings {
   battery?: number;
@@ -13,8 +13,8 @@ export interface DeviceStatusDto {
   timestamp: number;
   batteryLevel: number;
   isCharging: boolean;
-  batteryHealth?: BatteryHealthState;
-  networkType: NetworkType;
+  batteryHealth?: BatteryHealthStateEnum;
+  networkType: NetworkTypeEnum;
   ssid: string;
   temperature?: TemperatureReadings;
 }

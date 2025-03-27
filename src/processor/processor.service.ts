@@ -21,8 +21,8 @@ import { DeepPartial } from 'typeorm';
 import { CacheService } from './cache.service';
 import {
   DeviceStatusDto,
-  NetworkType as NetworkTypeEnum,
-  BatteryHealthState,
+  NetworkTypeEnum as NetworkTypeEnum,
+  BatteryHealthStateEnum,
   TemperatureType as TemperatureTypeEnum,
 } from './types';
 
@@ -89,7 +89,7 @@ export class ProcessorService {
 
   private async getOrCreateBatteryHealth(
     manager: EntityManager,
-    state: BatteryHealthState | undefined,
+    state: BatteryHealthStateEnum | undefined,
   ): Promise<BatteryHealth | null> {
     if (!state) return null;
 
@@ -115,7 +115,8 @@ export class ProcessorService {
       timestamp: deviceStatus.timestamp,
       batteryLevel: deviceStatus.batteryLevel,
       isCharging: deviceStatus.isCharging,
-      batteryHealth: deviceStatus.batteryHealth?.state as BatteryHealthState,
+      batteryHealth: deviceStatus.batteryHealth
+        ?.state as BatteryHealthStateEnum,
       networkType: deviceStatus.networkType.type as NetworkTypeEnum,
       ssid: deviceStatus.ssid.name,
       temperature,
