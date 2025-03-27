@@ -8,22 +8,64 @@ import { LRUCache } from 'mnemonist';
 
 @Injectable()
 export class CacheService {
-  private readonly MAX_STATUS_CACHE_SIZE = 20000;
-  private readonly MAX_NORMAL_CACHE_SIZE = 5000;
+  private readonly STATUS_CACHE_SIZE = 20000;
+  private readonly NORMAL_CACHE_SIZE = 5000;
 
   private processorCache = new LRUCache<string, Processor>(
-    this.MAX_STATUS_CACHE_SIZE,
+    this.STATUS_CACHE_SIZE,
   );
   private deviceStatusCache = new LRUCache<string, DeviceStatus>(
-    this.MAX_STATUS_CACHE_SIZE,
+    this.STATUS_CACHE_SIZE,
   );
   private networkTypeCache = new LRUCache<string, NetworkType>(
-    this.MAX_NORMAL_CACHE_SIZE,
+    this.NORMAL_CACHE_SIZE,
   );
   private batteryHealthCache = new LRUCache<string, BatteryHealth>(
-    this.MAX_NORMAL_CACHE_SIZE,
+    this.NORMAL_CACHE_SIZE,
   );
-  private ssidCache = new LRUCache<string, Ssid>(this.MAX_NORMAL_CACHE_SIZE);
+  private ssidCache = new LRUCache<string, Ssid>(this.NORMAL_CACHE_SIZE);
+
+  // Cache size getters
+  getDeviceStatusCacheSize(): number {
+    return this.deviceStatusCache.size;
+  }
+
+  getProcessorCacheSize(): number {
+    return this.processorCache.size;
+  }
+
+  getNetworkTypeCacheSize(): number {
+    return this.networkTypeCache.size;
+  }
+
+  getBatteryHealthCacheSize(): number {
+    return this.batteryHealthCache.size;
+  }
+
+  getSsidCacheSize(): number {
+    return this.ssidCache.size;
+  }
+
+  // Cache capacity getters
+  getDeviceStatusCacheCapacity(): number {
+    return this.deviceStatusCache.capacity;
+  }
+
+  getProcessorCacheCapacity(): number {
+    return this.processorCache.capacity;
+  }
+
+  getNetworkTypeCacheCapacity(): number {
+    return this.networkTypeCache.capacity;
+  }
+
+  getBatteryHealthCacheCapacity(): number {
+    return this.batteryHealthCache.capacity;
+  }
+
+  getSsidCacheCapacity(): number {
+    return this.ssidCache.capacity;
+  }
 
   // Processor cache methods
   getProcessor(address: string): Processor | undefined {

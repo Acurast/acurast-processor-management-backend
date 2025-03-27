@@ -1,10 +1,14 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { Response } from 'express';
+import { CacheService } from './processor/cache.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   @Get()
   async getHomePage(@Res() res: Response): Promise<void> {
@@ -83,6 +87,35 @@ export class AppController {
               font-size: 0.8rem;
               margin-top: 1rem;
             }
+            .cache-stats {
+              background: #fff;
+              border: 1px solid #e9ecef;
+              border-radius: 8px;
+              padding: 1rem;
+              margin: 2rem 0;
+            }
+            .cache-stats h2 {
+              color: #2c3e50;
+              margin-top: 0;
+            }
+            .cache-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 1rem;
+            }
+            .cache-item {
+              background: #f8f9fa;
+              padding: 1rem;
+              border-radius: 4px;
+            }
+            .cache-item h3 {
+              margin: 0 0 0.5rem 0;
+              color: #2c3e50;
+            }
+            .cache-item p {
+              margin: 0;
+              color: #6c757d;
+            }
           </style>
         </head>
         <body>
@@ -107,12 +140,43 @@ export class AppController {
               <div class="stat-label">Check-ins (Last 24 Hours)</div>
             </div>
           </div>
+
+          <div class="cache-stats">
+            <h2>Cache Statistics</h2>
+            <div class="cache-grid">
+              <div class="cache-item">
+                <h3>Device Status Cache</h3>
+                <p>Size: ${this.cacheService.getDeviceStatusCacheSize()} / ${this.cacheService.getDeviceStatusCacheCapacity()}</p>
+              </div>
+              <div class="cache-item">
+                <h3>Processor Cache</h3>
+                <p>Size: ${this.cacheService.getProcessorCacheSize()} / ${this.cacheService.getProcessorCacheCapacity()}</p>
+              </div>
+              <div class="cache-item">
+                <h3>Network Type Cache</h3>
+                <p>Size: ${this.cacheService.getNetworkTypeCacheSize()} / ${this.cacheService.getNetworkTypeCacheCapacity()}</p>
+              </div>
+              <div class="cache-item">
+                <h3>SSID Cache</h3>
+                <p>Size: ${this.cacheService.getSsidCacheSize()} / ${this.cacheService.getSsidCacheCapacity()}</p>
+              </div>
+              <div class="cache-item">
+                <h3>Battery Health Cache</h3>
+                <p>Size: ${this.cacheService.getBatteryHealthCacheSize()} / ${this.cacheService.getBatteryHealthCacheCapacity()}</p>
+              </div>
+            </div>
+          </div>
           
           <h2>Available Endpoints</h2>
           
           <div class="endpoint">
             <span class="method">POST</span> <code>/processor/check-in</code>
             <p>Register a new device check-in with status information.</p>
+          </div>
+          
+          <div class="endpoint">
+            <span class="method">GET</span> <code>/processor/list</code>
+            <p>View a list of all devices with their latest status.</p>
           </div>
           
           <div class="endpoint">

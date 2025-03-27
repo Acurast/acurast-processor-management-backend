@@ -9,6 +9,7 @@ import { NetworkType } from './processor/entities/network-type.entity';
 import { BatteryHealth } from './processor/entities/battery-health.entity';
 import { Ssid } from './processor/entities/ssid.entity';
 import { TemperatureReading } from './processor/entities/temperature-reading.entity';
+import { CacheService } from './processor/cache.service';
 
 @Module({
   imports: [
@@ -29,6 +30,6 @@ import { TemperatureReading } from './processor/entities/temperature-reading.ent
     ProcessorModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, CacheService],
 })
 export class AppModule {}

@@ -6,6 +6,7 @@ import {
   CheckInResponse,
   StatusResponse,
   HistoryResponse,
+  ListResponse,
 } from './processor.controller';
 import { DeviceStatus } from './entities/device-status.entity';
 import { Processor } from './entities/processor.entity';
@@ -222,5 +223,29 @@ export class ProcessorService {
     return {
       history,
     };
+  }
+
+  async getDeviceList(): Promise<ListResponse> {
+    // Get all processors with their latest status
+    const processors = await this.processorRepository
+      .createQueryBuilder('processor')
+      .leftJoinAndSelect('processor.statuses', 'status')
+      .orderBy('status.timestamp', 'DESC')
+      .getMany();
+
+    // Transform the data to include only the latest status for each processor
+    const devices = processors.map((processor) => {
+      const latestStatus = processor.statuses[0];
+      return {
+        address: processor.address,
+        lastSeen: latestStatus?.timestamp || 0,
+        batteryLevel: latestStatus?.batteryLevel || 0,
+        isCharging: latestStatus?.isCharging || false,
+        networkType: latestStatus?.networkType?.type || 'unknown',
+        ssid: latestStatus?.ssid?.name || 'unknown',
+      };
+    });
+
+    return { devices };
   }
 }

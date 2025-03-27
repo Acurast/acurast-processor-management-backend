@@ -15,7 +15,7 @@ interface StatsCache {
 @Injectable()
 export class AppService {
   private statsCache: StatsCache | null = null;
-  private readonly CACHE_TTL = 60 * 1000; // 1 minute
+  private readonly CACHE_TTL = 1; // 1ms
 
   constructor(
     @InjectRepository(DeviceStatus)
