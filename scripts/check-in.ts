@@ -4,7 +4,7 @@ import { sleep } from './utils';
 interface DeviceState {
   batteryLevel: number;
   isCharging: boolean;
-  networkType: 'wifi' | 'cellular' | 'usb' | 'offline';
+  networkType: 'wifi' | 'cellular' | 'usb';
   ssid: string;
   temperature: {
     battery: number;
@@ -12,17 +12,14 @@ interface DeviceState {
     gpu: number;
     ambient: number;
   };
-  lastChargingChange: number;
-  lastSsidChange: number;
 }
 
 const DEVICE_STATES = new Map<string, DeviceState>();
 
-const NETWORK_TYPES: ('wifi' | 'cellular' | 'usb' | 'offline')[] = [
+const NETWORK_TYPES: ('wifi' | 'cellular' | 'usb')[] = [
   'wifi',
   'cellular',
   'usb',
-  'offline',
 ];
 const SSIDS = [
   'Home WiFi',
@@ -80,55 +77,44 @@ function initializeDeviceState(): DeviceState {
         TEMPERATURE_RANGES.ambient.max,
       ),
     },
-    lastChargingChange: Date.now(),
-    lastSsidChange: Date.now(),
   };
 }
 
 function updateDeviceState(address: string): DeviceState {
   const state = DEVICE_STATES.get(address) || initializeDeviceState();
-  const now = Date.now();
 
   // Update battery level based on charging status
   if (state.isCharging) {
-    // When charging, battery increases by 0.1-0.5%
+    // When charging, battery increases by 0.5-1.5% (faster charging)
     state.batteryLevel = Math.min(
       100,
-      state.batteryLevel + getRandomFloat(0.1, 0.5),
+      state.batteryLevel + getRandomFloat(0.5, 1.5),
     );
-    console.log(
-      `[${address}] Charging: Battery level increased to ${state.batteryLevel.toFixed(1)}%`,
-    );
+    // console.log(
+    //   `[${address}] Charging: Battery level increased to ${state.batteryLevel.toFixed(1)}%`,
+    // );
   } else {
     // When not charging, battery decreases by 0.05-0.2%
     state.batteryLevel = Math.max(
       0,
       state.batteryLevel - getRandomFloat(0.05, 0.2),
     );
-    console.log(
-      `[${address}] Not charging: Battery level decreased to ${state.batteryLevel.toFixed(1)}%`,
-    );
+    // console.log(
+    //   `[${address}] Not charging: Battery level decreased to ${state.batteryLevel.toFixed(1)}%`,
+    // );
   }
 
-  // More frequently change charging status (every 5-15 minutes)
-  if (
-    now - state.lastChargingChange >
-    getRandomInt(5 * 60 * 1000, 15 * 60 * 1000)
-  ) {
+  // Randomly change charging status with 0.1% probability
+  if (Math.random() < 0.01) {
     state.isCharging = !state.isCharging;
-    state.lastChargingChange = now;
     console.log(
       `[${address}] Charging status changed to: ${state.isCharging ? 'charging' : 'not charging'}`,
     );
   }
 
   // Very rarely change SSID (every 2-4 hours)
-  if (
-    now - state.lastSsidChange >
-    getRandomInt(2 * 60 * 60 * 1000, 4 * 60 * 60 * 1000)
-  ) {
+  if (Math.random() < 0.001) {
     state.ssid = getRandomElement(SSIDS);
-    state.lastSsidChange = now;
   }
 
   // Slightly fluctuate temperatures

@@ -46,6 +46,10 @@ async function main() {
     '7MpN2kL5qR8tV3xY4wZ9bC1fH6nJ9gD2',
     '4NqM8kL2pR5tV7xY3wZ6bC9fH1nJ4gD7',
     '2PmN5kL8qR3tV9xY6wZ4bC7fH2nJ1gD5',
+    '6KjL9mN4pQ3rT8vX5wY2zB1fH7nJ8gD3',
+    '8MpN3kL7qR4tV2xY5wZ1bC9fH4nJ7gD2',
+    '1PmN4kL7qR2tV5xY8wZ3bC6fH9nJ2gD5',
+    '9KjL6mN3pQ4rT7vX2wY5zB8fH1nJ5gD4',
   ];
 
   // Handle process termination
