@@ -19,6 +19,7 @@ import {
 } from './entities/temperature-reading.entity';
 import { DeepPartial } from 'typeorm';
 import { CacheService } from './cache.service';
+import { DeviceStatusDto } from './dto/device-status.dto';
 
 @Injectable()
 export class ProcessorService {
@@ -97,6 +98,27 @@ export class ProcessorService {
     return batteryHealth;
   }
 
+  private transformToDto(deviceStatus: DeviceStatus): DeviceStatusDto {
+    const temperature: DeviceStatusDto['temperature'] = {};
+    deviceStatus.temperatureReadings?.forEach((reading) => {
+      const type = reading.type.toLowerCase() as TemperatureType;
+      temperature[type] = reading.value;
+    });
+
+    return {
+      address: deviceStatus.processor.address,
+      timestamp: deviceStatus.timestamp,
+      batteryLevel: deviceStatus.batteryLevel,
+      isCharging: deviceStatus.isCharging,
+      batteryHealth: deviceStatus.batteryHealth
+        ?.state as DeviceStatusDto['batteryHealth'],
+      networkType: deviceStatus.networkType
+        .type as DeviceStatusDto['networkType'],
+      ssid: deviceStatus.ssid.name,
+      temperature,
+    };
+  }
+
   async handleCheckIn(
     checkInRequest: CheckInRequest,
   ): Promise<CheckInResponse> {
@@ -157,12 +179,12 @@ export class ProcessorService {
     // Check cache first
     const cached = this.cacheService.getDeviceStatus(deviceAddress);
     if (cached) {
-      return { deviceStatus: cached };
+      return { deviceStatus: this.transformToDto(cached) };
     }
 
     const latestStatus = await this.deviceStatusRepository
       .createQueryBuilder('status')
-      .innerJoin('status.processor', 'processor')
+      .innerJoinAndSelect('status.processor', 'processor')
       .where('processor.address = :address', { address: deviceAddress })
       .leftJoinAndSelect('status.networkType', 'networkType')
       .leftJoinAndSelect('status.ssid', 'ssid')
@@ -179,7 +201,7 @@ export class ProcessorService {
     // Update cache
     this.cacheService.setDeviceStatus(deviceAddress, latestStatus);
 
-    return { deviceStatus: latestStatus };
+    return { deviceStatus: this.transformToDto(latestStatus) };
   }
 
   async getDeviceHistory(
@@ -204,7 +226,7 @@ export class ProcessorService {
     }
 
     return {
-      history,
+      history: history.map((status) => this.transformToDto(status)),
     };
   }
 
@@ -221,7 +243,7 @@ export class ProcessorService {
     });
 
     return {
-      history,
+      history: history.map((status) => this.transformToDto(status)),
     };
   }
 

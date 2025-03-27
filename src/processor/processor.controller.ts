@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, Query, Param, Res } from '@nestjs/common';
 import { ProcessorService } from './processor.service';
 import { BatchService } from './batch.service';
-import { DeviceStatus } from './entities/device-status.entity';
+import { DeviceStatusDto } from './dto/device-status.dto';
 import { Response } from 'express';
 
 export interface CheckInRequest {
@@ -26,11 +26,11 @@ export interface CheckInResponse {
 }
 
 export interface StatusResponse {
-  deviceStatus: DeviceStatus;
+  deviceStatus: DeviceStatusDto;
 }
 
 export interface HistoryResponse {
-  history: DeviceStatus[];
+  history: DeviceStatusDto[];
 }
 
 export interface ListResponse {
@@ -94,7 +94,7 @@ export class ProcessorController {
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
               line-height: 1.6;
-              max-width: 1200px;
+              max-width: 1400px;
               margin: 0 auto;
               padding: 2rem;
               color: #333;
@@ -103,61 +103,6 @@ export class ProcessorController {
               color: #2c3e50;
               border-bottom: 2px solid #eee;
               padding-bottom: 0.5rem;
-            }
-            .device-grid {
-              display: grid;
-              grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-              gap: 1rem;
-              margin: 2rem 0;
-            }
-            .device-card {
-              background: #fff;
-              border: 1px solid #e9ecef;
-              border-radius: 8px;
-              padding: 1rem;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-            .device-card h2 {
-              margin: 0 0 1rem 0;
-              color: #2c3e50;
-              font-size: 1.2rem;
-            }
-            .device-info {
-              display: grid;
-              grid-template-columns: auto 1fr;
-              gap: 0.5rem;
-              margin-bottom: 0.5rem;
-            }
-            .device-info span:first-child {
-              color: #6c757d;
-              font-weight: 500;
-            }
-            .device-actions {
-              margin-top: 1rem;
-              display: flex;
-              gap: 1rem;
-            }
-            .btn {
-              display: inline-block;
-              padding: 0.5rem 1rem;
-              border-radius: 4px;
-              text-decoration: none;
-              font-weight: 500;
-              transition: background-color 0.2s;
-            }
-            .btn-primary {
-              background: #007bff;
-              color: white;
-            }
-            .btn-primary:hover {
-              background: #0056b3;
-            }
-            .btn-secondary {
-              background: #6c757d;
-              color: white;
-            }
-            .btn-secondary:hover {
-              background: #545b62;
             }
             .back-link {
               display: inline-block;
@@ -168,38 +113,127 @@ export class ProcessorController {
             .back-link:hover {
               text-decoration: underline;
             }
+            .table-container {
+              overflow-x: auto;
+              margin: 2rem 0;
+              background: #fff;
+              border: 1px solid #e9ecef;
+              border-radius: 8px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 0.9rem;
+            }
+            th, td {
+              padding: 0.75rem 1rem;
+              text-align: left;
+              border-bottom: 1px solid #e9ecef;
+            }
+            th {
+              background: #f8f9fa;
+              font-weight: 600;
+              color: #2c3e50;
+              white-space: nowrap;
+            }
+            tr:hover {
+              background: #f8f9fa;
+            }
+            .status-link {
+              color: #007bff;
+              text-decoration: none;
+            }
+            .status-link:hover {
+              text-decoration: underline;
+            }
+            .battery-level {
+              display: inline-flex;
+              align-items: center;
+              gap: 0.5rem;
+            }
+            .battery-level::before {
+              content: '';
+              display: inline-block;
+              width: 1rem;
+              height: 0.5rem;
+              background: currentColor;
+              border-radius: 2px;
+            }
+            .battery-level[data-level="high"] { color: #28a745; }
+            .battery-level[data-level="medium"] { color: #ffc107; }
+            .battery-level[data-level="low"] { color: #dc3545; }
+            .network-type {
+              display: inline-flex;
+              align-items: center;
+              gap: 0.5rem;
+            }
+            .network-type::before {
+              content: '';
+              display: inline-block;
+              width: 0.5rem;
+              height: 0.5rem;
+              border-radius: 50%;
+              background: currentColor;
+            }
+            .network-type[data-type="wifi"] { color: #28a745; }
+            .network-type[data-type="cellular"] { color: #007bff; }
+            .network-type[data-type="usb"] { color: #6c757d; }
+            .network-type[data-type="offline"] { color: #dc3545; }
+            .timestamp {
+              font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            }
           </style>
         </head>
         <body>
           <a href="/" class="back-link">← Back to Dashboard</a>
           <h1>Device List</h1>
           
-          <div class="device-grid">
-            ${devices.devices
-              .map(
-                (device) => `
-              <div class="device-card">
-                <h2>${device.address}</h2>
-                <div class="device-info">
-                  <span>Last Seen:</span>
-                  <span>${new Date(device.lastSeen).toLocaleString()}</span>
-                </div>
-                <div class="device-info">
-                  <span>Battery:</span>
-                  <span>${device.batteryLevel}% ${device.isCharging ? '(Charging)' : ''}</span>
-                </div>
-                <div class="device-info">
-                  <span>Network:</span>
-                  <span>${device.networkType} (${device.ssid})</span>
-                </div>
-                <div class="device-actions">
-                  <a href="/processor/devices/${device.address}/status" class="btn btn-primary">View Status</a>
-                  <a href="/processor/devices/${device.address}/history" class="btn btn-secondary">View History</a>
-                </div>
-              </div>
-            `,
-              )
-              .join('')}
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Address</th>
+                  <th>Last Seen</th>
+                  <th>Battery</th>
+                  <th>Network</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${devices.devices
+                  .map((device) => {
+                    const batteryLevel = device.batteryLevel;
+                    const batteryLevelClass =
+                      batteryLevel > 50
+                        ? 'high'
+                        : batteryLevel > 20
+                          ? 'medium'
+                          : 'low';
+                    return `
+                    <tr>
+                      <td><code>${device.address}</code></td>
+                      <td class="timestamp">${new Date(device.lastSeen).toLocaleString()}</td>
+                      <td>
+                        <span class="battery-level" data-level="${batteryLevelClass}">
+                          ${batteryLevel}% ${device.isCharging ? '(Charging)' : ''}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="network-type" data-type="${device.networkType.toLowerCase()}">
+                          ${device.networkType} (${device.ssid})
+                        </span>
+                      </td>
+                      <td>
+                        <a href="/processor/devices/${device.address}/status" class="status-link">Status</a> |
+                        <a href="/processor/devices/${device.address}/history" class="status-link">History</a>
+                      </td>
+                    </tr>
+                  `;
+                  })
+                  .join('')}
+              </tbody>
+            </table>
           </div>
         </body>
       </html>
