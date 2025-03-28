@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Device Status</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .device-card {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .device-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+      }
+      .device-address {
+        font-weight: bold;
+        color: #2c3e50;
+        font-size: 1.2em;
+      }
+      .timestamp {
+        color: #666;
+        font-size: 0.9em;
+      }
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+      }
+      .info-section {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+      }
+      .info-title {
+        font-weight: 500;
+        color: #2c3e50;
+        margin-bottom: 10px;
+      }
+      .info-value {
+        color: #555;
+        font-size: 1.1em;
+      }
+      .battery-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .battery-icon {
+        width: 24px;
+        height: 24px;
+      }
+      .temperature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+      }
+      .temperature-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        background-color: #fff;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      .temperature-label {
+        font-size: 0.9em;
+        color: #666;
+        margin-bottom: 5px;
+      }
+      .temperature-value {
+        font-size: 1.2em;
+        font-weight: 500;
+        color: #2c3e50;
+      }
+      .error-message {
+        color: #e74c3c;
+        text-align: center;
+        padding: 20px;
+        background-color: #fde8e8;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Device Status</h1>
+      {{#if error}}
+      <div class="error-message">{{error}}</div>
+      {{else}}
+      <div class="device-card">
+        <div class="device-header">
+          <span class="device-address">{{deviceStatus.address}}</span>
+          <span class="timestamp"
+            >Last updated: {{formatTimestamp deviceStatus.timestamp}}</span
+          >
+        </div>
+        <div class="info-grid">
+          <div class="info-section">
+            <div class="info-title">Battery Status</div>
+            <div class="battery-section">
+              {{#if deviceStatus.isCharging}}
+              <img
+                src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PHBhdGggZD0iTTExIDEwaDIiLz48L3N2Zz4="
+                class="battery-icon"
+                alt="Charging"
+              />
+              {{else}}
+              <img
+                src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PC9zdmc+"
+                class="battery-icon"
+                alt="Battery"
+              />
+              {{/if}}
+              <span class="info-value">{{deviceStatus.batteryLevel}}%</span>
+            </div>
+            {{#if deviceStatus.batteryHealth}}
+            <div class="info-value">Health: {{deviceStatus.batteryHealth}}</div>
+            {{/if}}
+          </div>
+          <div class="info-section">
+            <div class="info-title">Network Information</div>
+            <div class="info-value">Type: {{deviceStatus.networkType}}</div>
+            {{#if deviceStatus.ssid}}
+            <div class="info-value">SSID: {{deviceStatus.ssid}}</div>
+            {{/if}}
+          </div>
+          <div class="info-section">
+            <div class="info-title">Temperature Readings</div>
+            <div class="temperature-grid">
+              {{#each deviceStatus.temperature}} {{#if this}}
+              <div class="temperature-item">
+                <span class="temperature-label">{{@key}}</span>
+                <span class="temperature-value">{{this}}°C</span>
+              </div>
+              {{/if}} {{/each}}
+            </div>
+          </div>
+        </div>
+      </div>
+      {{/if}}
+    </div>
+  </body>
+</html>

@@ -104,24 +104,30 @@ export class ProcessorService {
 
   private async getOrCreateSsid(
     manager: EntityManager,
-    name: string,
-  ): Promise<Ssid> {
-    // Check cache first
-    const cached = this.cacheService.getSsid(name);
+    ssidName: string | undefined,
+  ): Promise<Ssid | undefined> {
+    if (!ssidName) {
+      return undefined;
+    }
+
+    const cached = this.cacheService.getSsid(ssidName);
     if (cached) {
       return cached;
     }
 
-    let ssid = await manager.findOne(Ssid, {
-      where: { name },
+    const ssid = await manager.findOne(Ssid, {
+      where: { name: ssidName },
     });
-    if (!ssid) {
-      ssid = manager.create(Ssid, { name });
-      ssid = await manager.save(ssid);
+
+    if (ssid) {
+      this.cacheService.setSsid(ssidName, ssid);
+      return ssid;
     }
-    // Update cache with the SSID
-    this.cacheService.setSsid(ssid.name, ssid);
-    return ssid;
+
+    const newSsid = manager.create(Ssid, { name: ssidName });
+    await manager.save(newSsid);
+    this.cacheService.setSsid(ssidName, newSsid);
+    return newSsid;
   }
 
   private async getOrCreateBatteryHealth(
@@ -157,9 +163,10 @@ export class ProcessorService {
     };
 
     deviceStatus.temperatureReadings?.forEach((reading) => {
-      const type =
-        reading.type.toLowerCase() as keyof DeviceStatusDto['temperature'];
-      temperature[type] = reading.value;
+      const type = reading.type.toLowerCase() as keyof typeof temperature;
+      if (type in temperature) {
+        temperature[type] = reading.value;
+      }
     });
 
     return {

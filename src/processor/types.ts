@@ -15,7 +15,7 @@ export interface DeviceStatus {
   batteryHealth?: BatteryHealthStateEnum;
   temperature?: TemperatureReadings;
   networkType: NetworkTypeEnum;
-  ssid: string;
+  ssid?: string;
 }
 
 export interface CheckInRequest {
@@ -26,7 +26,7 @@ export interface CheckInRequest {
   batteryHealth?: BatteryHealthStateEnum;
   temperature?: TemperatureReadings;
   networkType: NetworkTypeEnum;
-  ssid: string;
+  ssid?: string;
 }
 
 export interface CheckInResponse {
@@ -47,7 +47,7 @@ export interface DeviceListItem {
   batteryLevel: number;
   isCharging: boolean;
   networkType: NetworkTypeEnum;
-  ssid: string;
+  ssid?: string;
 }
 
 export interface ListResponse {

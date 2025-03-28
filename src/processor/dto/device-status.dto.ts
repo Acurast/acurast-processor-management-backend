@@ -44,17 +44,18 @@ export class DeviceStatusDto implements DeviceStatus {
   })
   batteryHealth?: BatteryHealthStateEnum;
 
-  @ApiProperty({
-    description: 'Temperature readings',
-    type: TemperatureReadingsDto,
-  })
-  temperature: TemperatureReadingsDto;
-
   @ApiProperty({ description: 'Network type', enum: NetworkTypeEnum })
   networkType: NetworkTypeEnum;
 
-  @ApiProperty({ description: 'Network SSID' })
-  ssid: string;
+  @ApiProperty({ description: 'Network SSID', required: false })
+  ssid?: string;
+
+  @ApiProperty({
+    description: 'Temperature readings',
+    type: TemperatureReadingsDto,
+    required: false,
+  })
+  temperature?: TemperatureReadingsDto;
 }
 
 export type TemperatureType = keyof NonNullable<DeviceStatusDto['temperature']>;

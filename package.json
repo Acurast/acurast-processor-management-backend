@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && node scripts/copy-templates.js",
     "build:scripts": "tsc scripts/*.ts --outDir dist/scripts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\"",
     "start": "nest start",
@@ -28,6 +28,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.1.0",
     "@nestjs/typeorm": "^11.0.0",
+    "handlebars": "^4.7.8",
     "mnemonist": "^0.40.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
