@@ -1,86 +1,212 @@
-import { Controller, Post, Get, Body, Query, Param, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Query,
+  Param,
+  Res,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { ProcessorService } from './processor.service';
-import { DeviceStatusDto } from './dto/device-status.dto';
+import {
+  DeviceStatusDto,
+  TemperatureReadingsDto,
+} from './dto/device-status.dto';
 import { Response } from 'express';
-import type { BatteryHealthStateEnum, NetworkTypeEnum } from './types';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiProperty,
+} from '@nestjs/swagger';
+import { NetworkTypeEnum, BatteryHealthStateEnum } from './enums';
+import {
+  CheckInRequest,
+  CheckInResponse,
+  StatusResponse,
+  HistoryResponse,
+  DeviceListItem,
+  ListResponse,
+} from './types';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export interface CheckInRequest {
+export class CheckInRequestDto implements CheckInRequest {
+  @ApiProperty({ description: 'Device address' })
   deviceAddress: string;
+
+  @ApiProperty({ description: 'Timestamp of the check-in' })
   timestamp: number;
+
+  @ApiProperty({ description: 'Battery level percentage' })
   batteryLevel: number;
+
+  @ApiProperty({ description: 'Whether the device is currently charging' })
   isCharging: boolean;
+
+  @ApiProperty({
+    description: 'Battery health state',
+    enum: BatteryHealthStateEnum,
+    required: false,
+  })
   batteryHealth?: BatteryHealthStateEnum;
-  temperature?: {
-    battery?: number;
-    cpu?: number;
-    gpu?: number;
-    ambient?: number;
-  };
+
+  @ApiProperty({
+    description: 'Temperature readings',
+    type: TemperatureReadingsDto,
+    required: false,
+  })
+  temperature?: TemperatureReadingsDto;
+
+  @ApiProperty({ description: 'Network type', enum: NetworkTypeEnum })
   networkType: NetworkTypeEnum;
+
+  @ApiProperty({ description: 'Network SSID' })
   ssid: string;
+
+  @ApiProperty({ description: 'Digital signature of the check-in' })
   signature: string;
 }
 
-export interface CheckInResponse {
+export class CheckInResponseDto implements CheckInResponse {
+  @ApiProperty({ description: 'Whether the check-in was successful' })
   success: boolean;
 }
 
-export interface StatusResponse {
+export class StatusResponseDto implements StatusResponse {
+  @ApiProperty({
+    description: 'Device status information',
+    type: DeviceStatusDto,
+  })
   deviceStatus: DeviceStatusDto;
 }
 
-export interface HistoryResponse {
+export class HistoryResponseDto implements HistoryResponse {
+  @ApiProperty({
+    description: 'List of historical device statuses',
+    type: [DeviceStatusDto],
+  })
   history: DeviceStatusDto[];
 }
 
-export interface ListResponse {
-  devices: Array<{
-    address: string;
-    lastSeen: number;
-    batteryLevel: number;
-    isCharging: boolean;
-    networkType: string;
-    ssid: string;
-  }>;
+export class DeviceListItemDto implements DeviceListItem {
+  @ApiProperty({ description: 'Device address' })
+  address: string;
+
+  @ApiProperty({ description: 'Last seen timestamp' })
+  lastSeen: number;
+
+  @ApiProperty({ description: 'Battery level percentage' })
+  batteryLevel: number;
+
+  @ApiProperty({ description: 'Whether the device is currently charging' })
+  isCharging: boolean;
+
+  @ApiProperty({ description: 'Network type', enum: NetworkTypeEnum })
+  networkType: NetworkTypeEnum;
+
+  @ApiProperty({ description: 'Network SSID' })
+  ssid: string;
 }
 
+export class ListResponseDto implements ListResponse {
+  @ApiProperty({ description: 'List of devices', type: [DeviceListItemDto] })
+  devices: DeviceListItemDto[];
+}
+
+@ApiTags('processor')
 @Controller('processor')
 export class ProcessorController {
   constructor(private readonly processorService: ProcessorService) {}
 
   @Post('check-in')
+  @ApiOperation({ summary: 'Submit a device check-in' })
+  @ApiResponse({
+    status: 200,
+    description: 'Check-in successful',
+    type: CheckInResponseDto,
+  })
   async checkIn(
-    @Body() checkInRequest: CheckInRequest,
-  ): Promise<CheckInResponse> {
+    @Body() checkInRequest: CheckInRequestDto,
+  ): Promise<CheckInResponseDto> {
     console.log(`New check-in received from ${checkInRequest.deviceAddress}`);
-    return this.processorService.handleCheckIn(checkInRequest);
+    try {
+      const response =
+        await this.processorService.handleCheckIn(checkInRequest);
+      return response;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        error instanceof Error ? error.message : 'Unknown error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Get('api/devices/:address/status')
+  @ApiOperation({ summary: 'Get device status' })
+  @ApiParam({ name: 'address', description: 'Device address' })
+  @ApiResponse({
+    status: 200,
+    description: 'Device status retrieved successfully',
+    type: StatusResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Device not found' })
   async getDeviceStatusApi(
     @Param('address') address: string,
-  ): Promise<StatusResponse> {
-    return this.processorService.getDeviceStatus(address);
+  ): Promise<StatusResponseDto> {
+    const response = await this.processorService.getDeviceStatus(address);
+    return response as StatusResponseDto;
   }
 
   @Get('api/devices/:address/history')
+  @ApiOperation({ summary: 'Get device history' })
+  @ApiParam({ name: 'address', description: 'Device address' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of history entries to return',
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device history retrieved successfully',
+    type: HistoryResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Device not found' })
   async getDeviceHistoryApi(
     @Param('address') address: string,
     @Query('limit') limit: number = 10,
-  ): Promise<HistoryResponse> {
-    return this.processorService.getDeviceHistory(address, limit);
+  ): Promise<HistoryResponseDto> {
+    const response = await this.processorService.getDeviceHistory(
+      address,
+      limit,
+    );
+    return response as HistoryResponseDto;
   }
 
   @Get('api/devices/status')
-  async getAllDeviceStatusesApi(): Promise<HistoryResponse> {
-    return this.processorService.getAllDeviceStatuses();
+  @ApiOperation({ summary: 'Get all device statuses' })
+  @ApiResponse({
+    status: 200,
+    description: 'All device statuses retrieved successfully',
+    type: HistoryResponseDto,
+  })
+  async getAllDeviceStatusesApi(): Promise<HistoryResponseDto> {
+    const response = await this.processorService.getAllDeviceStatuses();
+    return response as HistoryResponseDto;
   }
 
   @Get('web/list')
   async getDeviceList(@Res() res: Response) {
-    const { devices } = await this.processorService.getDeviceList();
+    const response = await this.processorService.getDeviceList();
+    const devices = response.devices as DeviceListItemDto[];
     const html = `
       <!DOCTYPE html>
       <html>
@@ -169,11 +295,11 @@ export class ProcessorController {
                 ${devices
                   .sort(
                     (
-                      a: ListResponse['devices'][0],
-                      b: ListResponse['devices'][0],
+                      a: ListResponseDto['devices'][0],
+                      b: ListResponseDto['devices'][0],
                     ) => a.address.localeCompare(b.address),
                   )
-                  .map((device: ListResponse['devices'][0]) => {
+                  .map((device: ListResponseDto['devices'][0]) => {
                     const batteryClass =
                       device.batteryLevel >= 40 && device.batteryLevel <= 70
                         ? 'battery-good'
@@ -189,7 +315,7 @@ export class ProcessorController {
                       </td>
                       <td>
                         ${
-                          device.networkType === 'unknown'
+                          device.networkType === NetworkTypeEnum.UNKNOWN
                             ? '<span class="unknown-network">Unknown</span>'
                             : `<span class="network-type">${device.networkType}</span>`
                         }
@@ -217,8 +343,8 @@ export class ProcessorController {
     @Param('address') address: string,
     @Res() res: Response,
   ): Promise<void> {
-    const { deviceStatus } =
-      await this.processorService.getDeviceStatus(address);
+    const response = await this.processorService.getDeviceStatus(address);
+    const deviceStatus = response.deviceStatus as DeviceStatusDto;
     if (!deviceStatus) {
       res.status(404).json({ error: 'Device not found' });
       return;
@@ -321,10 +447,8 @@ export class ProcessorController {
     @Param('address') address: string,
     @Res() res: Response,
   ): Promise<void> {
-    const { history } = await this.processorService.getDeviceHistory(
-      address,
-      10,
-    );
+    const response = await this.processorService.getDeviceHistory(address, 10);
+    const history = response.history as DeviceStatusDto[];
     if (!history || history.length === 0) {
       res.status(404).json({ error: 'No history found for device' });
       return;

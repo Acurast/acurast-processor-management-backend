@@ -7,7 +7,9 @@ import {
   StatusResponse,
   HistoryResponse,
   ListResponse,
-} from './processor.controller';
+  DeviceListItem,
+} from './types';
+import { DeviceStatusDto } from './dto/device-status.dto';
 import { DeviceStatus } from './entities/device-status.entity';
 import { Processor } from './entities/processor.entity';
 import { NetworkType } from './entities/network-type.entity';
@@ -18,12 +20,7 @@ import {
   TemperatureType,
 } from './entities/temperature-reading.entity';
 import { CacheService } from './cache.service';
-import {
-  DeviceStatusDto,
-  NetworkTypeEnum as NetworkTypeEnum,
-  BatteryHealthStateEnum,
-  TemperatureType as TemperatureTypeEnum,
-} from './types';
+import { BatteryHealthStateEnum, NetworkTypeEnum } from './enums';
 
 @Injectable()
 export class ProcessorService {
@@ -160,7 +157,8 @@ export class ProcessorService {
     };
 
     deviceStatus.temperatureReadings?.forEach((reading) => {
-      const type = reading.type.toLowerCase() as TemperatureTypeEnum;
+      const type =
+        reading.type.toLowerCase() as keyof DeviceStatusDto['temperature'];
       temperature[type] = reading.value;
     });
 
@@ -245,7 +243,6 @@ export class ProcessorService {
         batteryHealth: batteryHealth || undefined,
         networkType,
         ssid,
-        signature: checkIn.signature,
       });
       const savedDeviceStatus = await manager.save(deviceStatus);
 
@@ -256,8 +253,8 @@ export class ProcessorService {
           .map(([type, value]) =>
             manager.create(TemperatureReading, {
               deviceStatus: savedDeviceStatus,
-              type: type as TemperatureType,
-              value,
+              type: type.toUpperCase() as TemperatureType,
+              value: value as number,
             }),
           );
         await manager.save(temperatureReadings);
@@ -363,14 +360,15 @@ export class ProcessorService {
       .getMany();
 
     // Transform the data to include only the latest status for each processor
-    const devices = processors.map((processor) => {
+    const devices: DeviceListItem[] = processors.map((processor) => {
       const latestStatus = processor.statuses[0];
       return {
         address: processor.address,
         lastSeen: latestStatus?.timestamp || 0,
         batteryLevel: latestStatus?.batteryLevel || 0,
         isCharging: latestStatus?.isCharging || false,
-        networkType: latestStatus?.networkType?.type || 'unknown',
+        networkType: (latestStatus?.networkType?.type ||
+          NetworkTypeEnum.UNKNOWN) as NetworkTypeEnum,
         ssid: latestStatus?.ssid?.name || 'unknown',
       };
     });

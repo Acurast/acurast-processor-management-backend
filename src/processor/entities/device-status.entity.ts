@@ -45,9 +45,6 @@ export class DeviceStatus {
   @ManyToOne(() => Ssid, (ssid) => ssid.statuses)
   ssid: Ssid;
 
-  @Column()
-  signature: string;
-
   @CreateDateColumn()
   createdAt: Date;
 }

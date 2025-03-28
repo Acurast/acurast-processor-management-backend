@@ -1,5 +1,4 @@
-export type NetworkTypeEnum = 'wifi' | 'cellular' | 'usb';
-export type BatteryHealthStateEnum = 'good' | 'bad' | 'critical';
+import { NetworkTypeEnum, BatteryHealthStateEnum } from './enums';
 
 export interface TemperatureReadings {
   battery?: number;
@@ -8,15 +7,49 @@ export interface TemperatureReadings {
   ambient?: number;
 }
 
-export interface DeviceStatusDto {
+export interface DeviceStatus {
   address: string;
   timestamp: number;
   batteryLevel: number;
   isCharging: boolean;
   batteryHealth?: BatteryHealthStateEnum;
+  temperature?: TemperatureReadings;
   networkType: NetworkTypeEnum;
   ssid: string;
-  temperature?: TemperatureReadings;
 }
 
-export type TemperatureType = keyof NonNullable<DeviceStatusDto['temperature']>;
+export interface CheckInRequest {
+  deviceAddress: string;
+  timestamp: number;
+  batteryLevel: number;
+  isCharging: boolean;
+  batteryHealth?: BatteryHealthStateEnum;
+  temperature?: TemperatureReadings;
+  networkType: NetworkTypeEnum;
+  ssid: string;
+}
+
+export interface CheckInResponse {
+  success: boolean;
+}
+
+export interface StatusResponse {
+  deviceStatus: DeviceStatus;
+}
+
+export interface HistoryResponse {
+  history: DeviceStatus[];
+}
+
+export interface DeviceListItem {
+  address: string;
+  lastSeen: number;
+  batteryLevel: number;
+  isCharging: boolean;
+  networkType: NetworkTypeEnum;
+  ssid: string;
+}
+
+export interface ListResponse {
+  devices: DeviceListItem[];
+}
