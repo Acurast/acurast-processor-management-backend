@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm';
 import {
@@ -20,6 +25,7 @@ import {
   TemperatureType,
 } from './entities/temperature-reading.entity';
 import { CacheService } from './cache.service';
+import { SignatureService } from './signature.service';
 import { BatteryHealthStateEnum, NetworkTypeEnum } from './enums';
 
 @Injectable()
@@ -45,6 +51,7 @@ export class ProcessorService {
     private temperatureReadingRepository: Repository<TemperatureReading>,
     private dataSource: DataSource,
     private cacheService: CacheService,
+    private signatureService: SignatureService,
   ) {
     // Initialize batch processing
     this.timer = setInterval(() => {
@@ -184,7 +191,17 @@ export class ProcessorService {
 
   async handleCheckIn(
     checkInRequest: CheckInRequest,
+    signature: string,
   ): Promise<CheckInResponse> {
+    // Verify the signature first
+    const isValid = await this.signatureService.verifySignature(
+      checkInRequest,
+      signature,
+    );
+    if (!isValid) {
+      throw new HttpException('Invalid signature', HttpStatus.UNAUTHORIZED);
+    }
+
     // Add to batch queue
     this.checkInQueue.push(checkInRequest);
     if (this.checkInQueue.length >= this.BATCH_SIZE) {

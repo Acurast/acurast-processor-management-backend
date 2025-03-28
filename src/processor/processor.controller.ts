@@ -8,6 +8,7 @@ import {
   Res,
   HttpException,
   HttpStatus,
+  Headers,
 } from '@nestjs/common';
 import { ProcessorService } from './processor.service';
 import {
@@ -22,6 +23,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiProperty,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { NetworkTypeEnum, BatteryHealthStateEnum } from './enums';
 import {
@@ -68,9 +70,6 @@ export class CheckInRequestDto implements CheckInRequest {
 
   @ApiProperty({ description: 'Network SSID' })
   ssid: string;
-
-  @ApiProperty({ description: 'Digital signature of the check-in' })
-  signature: string;
 }
 
 export class CheckInResponseDto implements CheckInResponse {
@@ -202,6 +201,11 @@ export class ProcessorController {
 
   @Post('check-in')
   @ApiOperation({ summary: 'Submit a device check-in' })
+  @ApiHeader({
+    name: 'X-Device-Signature',
+    description: 'Digital signature of the check-in request',
+    required: true,
+  })
   @ApiResponse({
     status: 200,
     description: 'Check-in successful',
@@ -209,11 +213,14 @@ export class ProcessorController {
   })
   async checkIn(
     @Body() checkInRequest: CheckInRequestDto,
+    @Headers('x-device-signature') signature: string,
   ): Promise<CheckInResponseDto> {
     console.log(`New check-in received from ${checkInRequest.deviceAddress}`);
     try {
-      const response =
-        await this.processorService.handleCheckIn(checkInRequest);
+      const response = await this.processorService.handleCheckIn(
+        checkInRequest,
+        signature,
+      );
       return response;
     } catch (error) {
       if (error instanceof HttpException) {
