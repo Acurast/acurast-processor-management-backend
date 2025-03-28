@@ -17,7 +17,6 @@ import {
   TemperatureReading,
   TemperatureType,
 } from './entities/temperature-reading.entity';
-import { DeepPartial } from 'typeorm';
 import { CacheService } from './cache.service';
 import {
   DeviceStatusDto,
@@ -28,6 +27,12 @@ import {
 
 @Injectable()
 export class ProcessorService {
+  private readonly BATCH_SIZE = 1000; // Process 1000 check-ins at a time
+  private readonly BATCH_INTERVAL = 50; // Process batch every 50ms
+  private checkInQueue: CheckInRequest[] = [];
+  private processing = false;
+  private timer: NodeJS.Timeout;
+
   constructor(
     @InjectRepository(DeviceStatus)
     private deviceStatusRepository: Repository<DeviceStatus>,
@@ -43,12 +48,29 @@ export class ProcessorService {
     private temperatureReadingRepository: Repository<TemperatureReading>,
     private dataSource: DataSource,
     private cacheService: CacheService,
-  ) {}
+  ) {
+    // Initialize batch processing
+    this.timer = setInterval(() => {
+      void this.processBatch();
+    }, this.BATCH_INTERVAL);
+  }
+
+  onModuleDestroy() {
+    if (this.timer) {
+      clearInterval(this.timer);
+    }
+  }
 
   private async getOrCreateProcessor(
     manager: EntityManager,
     address: string,
   ): Promise<Processor> {
+    // Check cache first
+    const cached = this.cacheService.getProcessor(address);
+    if (cached) {
+      return cached;
+    }
+
     let processor = await manager.findOne(Processor, {
       where: { address },
     });
@@ -56,6 +78,8 @@ export class ProcessorService {
       processor = manager.create(Processor, { address });
       processor = await manager.save(processor);
     }
+    // Update cache with the processor
+    this.cacheService.setProcessor(processor);
     return processor;
   }
 
@@ -63,6 +87,12 @@ export class ProcessorService {
     manager: EntityManager,
     type: NetworkTypeEnum,
   ): Promise<NetworkType> {
+    // Check cache first
+    const cached = this.cacheService.getNetworkType(type);
+    if (cached) {
+      return cached;
+    }
+
     let networkType = await manager.findOne(NetworkType, {
       where: { type },
     });
@@ -70,6 +100,8 @@ export class ProcessorService {
       networkType = manager.create(NetworkType, { type });
       networkType = await manager.save(networkType);
     }
+    // Update cache with the network type
+    this.cacheService.setNetworkType(networkType.type, networkType);
     return networkType;
   }
 
@@ -77,6 +109,12 @@ export class ProcessorService {
     manager: EntityManager,
     name: string,
   ): Promise<Ssid> {
+    // Check cache first
+    const cached = this.cacheService.getSsid(name);
+    if (cached) {
+      return cached;
+    }
+
     let ssid = await manager.findOne(Ssid, {
       where: { name },
     });
@@ -84,6 +122,8 @@ export class ProcessorService {
       ssid = manager.create(Ssid, { name });
       ssid = await manager.save(ssid);
     }
+    // Update cache with the SSID
+    this.cacheService.setSsid(ssid.name, ssid);
     return ssid;
   }
 
@@ -93,6 +133,12 @@ export class ProcessorService {
   ): Promise<BatteryHealth | null> {
     if (!state) return null;
 
+    // Check cache first
+    const cached = this.cacheService.getBatteryHealth(state);
+    if (cached) {
+      return cached;
+    }
+
     let batteryHealth = await manager.findOne(BatteryHealth, {
       where: { state },
     });
@@ -100,11 +146,19 @@ export class ProcessorService {
       batteryHealth = manager.create(BatteryHealth, { state });
       batteryHealth = await manager.save(batteryHealth);
     }
+    // Update cache with the battery health
+    this.cacheService.setBatteryHealth(batteryHealth.state, batteryHealth);
     return batteryHealth;
   }
 
   private transformToDto(deviceStatus: DeviceStatus): DeviceStatusDto {
-    const temperature: DeviceStatusDto['temperature'] = {};
+    const temperature: DeviceStatusDto['temperature'] = {
+      battery: undefined,
+      cpu: undefined,
+      gpu: undefined,
+      ambient: undefined,
+    };
+
     deviceStatus.temperatureReadings?.forEach((reading) => {
       const type = reading.type.toLowerCase() as TemperatureTypeEnum;
       temperature[type] = reading.value;
@@ -118,7 +172,7 @@ export class ProcessorService {
       batteryHealth: deviceStatus.batteryHealth
         ?.state as BatteryHealthStateEnum,
       networkType: deviceStatus.networkType.type as NetworkTypeEnum,
-      ssid: deviceStatus.ssid.name,
+      ssid: deviceStatus.ssid?.name,
       temperature,
     };
   }
@@ -126,57 +180,106 @@ export class ProcessorService {
   async handleCheckIn(
     checkInRequest: CheckInRequest,
   ): Promise<CheckInResponse> {
-    // TODO: Implement signature verification
+    // Add to batch queue
+    this.checkInQueue.push(checkInRequest);
+    if (this.checkInQueue.length >= this.BATCH_SIZE) {
+      await this.processBatch();
+    }
+    return { success: true };
+  }
 
-    // Use a transaction to ensure data consistency
-    return this.dataSource.transaction(async (transactionalEntityManager) => {
-      const [processor, networkType, ssid, batteryHealth] = await Promise.all([
-        this.getOrCreateProcessor(
-          transactionalEntityManager,
-          checkInRequest.deviceAddress,
-        ),
-        this.getOrCreateNetworkType(
-          transactionalEntityManager,
-          checkInRequest.networkType,
-        ),
-        this.getOrCreateSsid(transactionalEntityManager, checkInRequest.ssid),
-        this.getOrCreateBatteryHealth(
-          transactionalEntityManager,
-          checkInRequest.batteryHealth,
-        ),
+  private async processBatch(): Promise<void> {
+    if (this.processing || this.checkInQueue.length === 0) return;
+
+    this.processing = true;
+    const batch = this.checkInQueue.splice(0, this.BATCH_SIZE);
+
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        // Group check-ins by processor address
+        const processorGroups = this.groupByProcessor(batch);
+
+        // Process each processor's check-ins
+        for (const [address, checkIns] of processorGroups.entries()) {
+          await this.processProcessorCheckIns(manager, address, checkIns);
+        }
+      });
+    } finally {
+      this.processing = false;
+    }
+  }
+
+  private groupByProcessor(
+    checkIns: CheckInRequest[],
+  ): Map<string, CheckInRequest[]> {
+    return checkIns.reduce((groups, checkIn) => {
+      const group = groups.get(checkIn.deviceAddress) || [];
+      group.push(checkIn);
+      groups.set(checkIn.deviceAddress, group);
+      return groups;
+    }, new Map<string, CheckInRequest[]>());
+  }
+
+  private async processProcessorCheckIns(
+    manager: EntityManager,
+    address: string,
+    checkIns: CheckInRequest[],
+  ): Promise<void> {
+    // Get or create processor
+    const processor = await this.getOrCreateProcessor(manager, address);
+
+    // Process each check-in
+    for (const checkIn of checkIns) {
+      const [networkType, ssid, batteryHealth] = await Promise.all([
+        this.getOrCreateNetworkType(manager, checkIn.networkType),
+        this.getOrCreateSsid(manager, checkIn.ssid),
+        this.getOrCreateBatteryHealth(manager, checkIn.batteryHealth),
       ]);
 
       // Create device status
-      const deviceStatus = transactionalEntityManager.create(DeviceStatus, {
+      const deviceStatus = manager.create(DeviceStatus, {
         processor,
-        timestamp: checkInRequest.timestamp,
-        batteryLevel: checkInRequest.batteryLevel,
-        isCharging: checkInRequest.isCharging,
+        timestamp: checkIn.timestamp,
+        batteryLevel: checkIn.batteryLevel,
+        isCharging: checkIn.isCharging,
         batteryHealth: batteryHealth || undefined,
         networkType,
         ssid,
-        signature: checkInRequest.signature,
-      } as DeepPartial<DeviceStatus>);
-      await transactionalEntityManager.save(deviceStatus);
+        signature: checkIn.signature,
+      });
+      const savedDeviceStatus = await manager.save(deviceStatus);
 
       // Create temperature readings if provided
-      if (checkInRequest.temperature) {
-        const temperatureReadings = Object.entries(checkInRequest.temperature)
+      if (checkIn.temperature) {
+        const temperatureReadings = Object.entries(checkIn.temperature)
           .filter(([, value]) => value !== undefined)
           .map(([type, value]) =>
-            transactionalEntityManager.create(TemperatureReading, {
-              deviceStatus,
+            manager.create(TemperatureReading, {
+              deviceStatus: savedDeviceStatus,
               type: type as TemperatureType,
               value,
             }),
           );
-        await transactionalEntityManager.save(temperatureReadings);
+        await manager.save(temperatureReadings);
       }
 
-      return {
-        success: true,
-      };
-    });
+      // Load the complete device status with all relations
+      const completeDeviceStatus = await manager.findOne(DeviceStatus, {
+        where: { id: savedDeviceStatus.id },
+        relations: [
+          'processor',
+          'networkType',
+          'ssid',
+          'batteryHealth',
+          'temperatureReadings',
+        ],
+      });
+
+      // Update cache with the complete device status
+      if (completeDeviceStatus) {
+        this.cacheService.setDeviceStatus(address, completeDeviceStatus);
+      }
+    }
   }
 
   async getDeviceStatus(deviceAddress: string): Promise<StatusResponse> {

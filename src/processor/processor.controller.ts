@@ -1,12 +1,10 @@
 import { Controller, Post, Get, Body, Query, Param, Res } from '@nestjs/common';
 import { ProcessorService } from './processor.service';
-import { BatchService } from './batch.service';
 import { DeviceStatusDto } from './dto/device-status.dto';
 import { Response } from 'express';
-import { CacheService } from './cache.service';
+import type { BatteryHealthStateEnum, NetworkTypeEnum } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { BatteryHealthStateEnum, NetworkTypeEnum } from './types';
 
 export interface CheckInRequest {
   deviceAddress: string;
@@ -50,18 +48,14 @@ export interface ListResponse {
 
 @Controller('processor')
 export class ProcessorController {
-  constructor(
-    private readonly processorService: ProcessorService,
-    private readonly batchService: BatchService,
-    private readonly cacheService: CacheService,
-  ) {}
+  constructor(private readonly processorService: ProcessorService) {}
 
   @Post('check-in')
   async checkIn(
     @Body() checkInRequest: CheckInRequest,
   ): Promise<CheckInResponse> {
-    await this.batchService.addToBatch(checkInRequest);
-    return { success: true };
+    console.log(`New check-in received from ${checkInRequest.deviceAddress}`);
+    return this.processorService.handleCheckIn(checkInRequest);
   }
 
   @Get('api/devices/:address/status')

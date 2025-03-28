@@ -19,8 +19,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "check-in:batch": "node dist/scripts/batch.js",
-    "check-in:single": "node dist/scripts/check-in.js"
+    "check-in:batch": "npm run build:scripts && node dist/scripts/batch.js",
+    "check-in:single": "npm run build:scripts && node dist/scripts/check-in.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
