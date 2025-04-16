@@ -9,6 +9,8 @@ import {
   HttpException,
   HttpStatus,
   Headers,
+  ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { ProcessorService } from './processor.service';
 import {
@@ -25,7 +27,7 @@ import {
   ApiProperty,
   ApiHeader,
 } from '@nestjs/swagger';
-import { NetworkTypeEnum, BatteryHealthStateEnum } from './enums';
+import { NetworkTypeEnum, BatteryHealthState } from './enums';
 import {
   CheckInRequest,
   CheckInResponse,
@@ -37,10 +39,15 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import Handlebars from 'handlebars';
+import { WhitelistService } from '../whitelist/whitelist.service';
+import { ConfigService } from '@nestjs/config';
 
 export class CheckInRequestDto implements CheckInRequest {
   @ApiProperty({ description: 'Device address' })
   deviceAddress: string;
+
+  @ApiProperty({ description: 'Platform (0 = Android, 1 = iOS)' })
+  platform: number;
 
   @ApiProperty({ description: 'Timestamp of the check-in' })
   timestamp: number;
@@ -53,28 +60,34 @@ export class CheckInRequestDto implements CheckInRequest {
 
   @ApiProperty({
     description: 'Battery health state',
-    enum: BatteryHealthStateEnum,
+    type: String,
     required: false,
   })
-  batteryHealth?: BatteryHealthStateEnum;
+  batteryHealth?: BatteryHealthState;
 
   @ApiProperty({
     description: 'Temperature readings',
     type: TemperatureReadingsDto,
     required: false,
   })
-  temperature?: TemperatureReadingsDto;
+  temperatures?: TemperatureReadingsDto;
 
   @ApiProperty({ description: 'Network type', enum: NetworkTypeEnum })
   networkType: NetworkTypeEnum;
 
-  @ApiProperty({ description: 'Network SSID' })
+  @ApiProperty({ description: 'Network SSID', required: false })
   ssid: string;
 }
 
 export class CheckInResponseDto implements CheckInResponse {
   @ApiProperty({ description: 'Whether the check-in was successful' })
   success: boolean;
+
+  @ApiProperty({
+    description: 'Recommended refresh interval in seconds',
+    required: true,
+  })
+  refreshIntervalInSeconds?: number;
 }
 
 export class StatusResponseDto implements StatusResponse {
@@ -143,12 +156,17 @@ interface DeviceGraphTemplateData {
 @ApiTags('processor')
 @Controller('processor')
 export class ProcessorController {
+  private readonly logger = new Logger(ProcessorController.name);
   private deviceListTemplate: HandlebarsTemplateDelegate<DeviceListTemplateData>;
   private deviceStatusTemplate: HandlebarsTemplateDelegate<DeviceStatusTemplateData>;
   private deviceHistoryTemplate: HandlebarsTemplateDelegate<DeviceHistoryTemplateData>;
   private deviceGraphTemplate: HandlebarsTemplateDelegate<DeviceGraphTemplateData>;
 
-  constructor(private readonly processorService: ProcessorService) {
+  constructor(
+    private readonly processorService: ProcessorService,
+    private readonly whitelistService: WhitelistService,
+    private readonly configService: ConfigService,
+  ) {
     try {
       // Try both development and production paths
       const possiblePaths = [
@@ -211,25 +229,65 @@ export class ProcessorController {
     description: 'Check-in successful',
     type: CheckInResponseDto,
   })
+  @ApiResponse({ status: 403, description: 'Processor not whitelisted' })
   async checkIn(
     @Body() checkInRequest: CheckInRequestDto,
     @Headers('x-device-signature') signature: string,
   ): Promise<CheckInResponseDto> {
-    console.log(`New check-in received from ${checkInRequest.deviceAddress}`);
+    if (
+      !this.whitelistService.shouldHandleProcessor(checkInRequest.deviceAddress)
+    ) {
+      this.logger.warn(
+        `Rejecting check-in from non-whitelisted processor: ${checkInRequest.deviceAddress}`,
+      );
+      throw new ForbiddenException(
+        `Processor ${checkInRequest.deviceAddress} is not whitelisted.`,
+      );
+    }
+
+    this.logger.log(
+      `New check-in received from ${checkInRequest.deviceAddress}`,
+    );
     try {
-      const response = await this.processorService.handleCheckIn(
+      const serviceResponse = await this.processorService.handleCheckIn(
         checkInRequest,
         signature,
       );
+
+      const refreshInterval = parseInt(
+        this.configService.get<string>('REFRESH_INTERVAL_IN_SECONDS', '60'),
+        10,
+      );
+
+      const response: CheckInResponseDto = {
+        success: serviceResponse.success,
+        refreshIntervalInSeconds: isNaN(refreshInterval) ? 60 : refreshInterval,
+      };
+
       return response;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
       }
-      throw new HttpException(
-        error instanceof Error ? error.message : 'Unknown error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+
+      if (error instanceof Error) {
+        this.logger.error(
+          `Error during check-in for ${checkInRequest.deviceAddress}: ${error.message}`,
+          error.stack,
+        );
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        this.logger.error(
+          `Unknown error type during check-in for ${checkInRequest.deviceAddress}: ${JSON.stringify(error)}`,
+        );
+        throw new HttpException(
+          'Unknown server error during check-in',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     }
   }
 

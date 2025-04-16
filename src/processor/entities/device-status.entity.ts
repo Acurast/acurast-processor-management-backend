@@ -5,7 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   OneToMany,
-  Index,
+  Unique,
 } from 'typeorm';
 import { Processor } from './processor.entity';
 import { NetworkType } from './network-type.entity';
@@ -14,10 +14,10 @@ import { Ssid } from './ssid.entity';
 import { TemperatureReading } from './temperature-reading.entity';
 
 @Entity()
-@Index(['processor', 'timestamp']) // Index for faster queries by processor and timestamp
+@Unique(['processor', 'timestamp'])
 export class DeviceStatus {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @ManyToOne(() => Processor, (processor) => processor.statuses)
   processor: Processor;

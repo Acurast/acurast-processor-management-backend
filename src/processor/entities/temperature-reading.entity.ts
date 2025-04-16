@@ -7,28 +7,18 @@ import {
 } from 'typeorm';
 import { DeviceStatus } from './device-status.entity';
 
-export enum TemperatureType {
-  BATTERY = 'battery',
-  CPU = 'cpu',
-  GPU = 'gpu',
-  AMBIENT = 'ambient',
-}
-
 @Entity()
 @Index(['deviceStatus', 'type'])
 @Index(['type', 'value'])
 export class TemperatureReading {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @ManyToOne(() => DeviceStatus, (status) => status.temperatureReadings)
   deviceStatus: DeviceStatus;
 
-  @Column({
-    type: 'text',
-    enum: TemperatureType,
-  })
-  type: TemperatureType;
+  @Column()
+  type: string;
 
   @Column('float')
   value: number;

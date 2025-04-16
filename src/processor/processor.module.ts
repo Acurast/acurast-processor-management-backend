@@ -10,6 +10,7 @@ import { NetworkType } from './entities/network-type.entity';
 import { BatteryHealth } from './entities/battery-health.entity';
 import { Ssid } from './entities/ssid.entity';
 import { TemperatureReading } from './entities/temperature-reading.entity';
+import { WhitelistModule } from '../whitelist/whitelist.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TemperatureReading } from './entities/temperature-reading.entity';
       Ssid,
       TemperatureReading,
     ]),
+    WhitelistModule,
   ],
   controllers: [ProcessorController],
   providers: [ProcessorService, CacheService, SignatureService],

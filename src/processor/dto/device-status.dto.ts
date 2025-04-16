@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { NetworkTypeEnum, BatteryHealthStateEnum } from '../enums';
+import { NetworkTypeEnum, BatteryHealthState } from '../enums';
 import { TemperatureReadings, DeviceStatus } from '../types';
 
 export class TemperatureReadingsDto implements TemperatureReadings {
@@ -9,17 +9,17 @@ export class TemperatureReadingsDto implements TemperatureReadings {
   })
   battery?: number;
 
-  @ApiProperty({ description: 'CPU temperature in Celsius', required: false })
-  cpu?: number;
-
-  @ApiProperty({ description: 'GPU temperature in Celsius', required: false })
-  gpu?: number;
-
   @ApiProperty({
     description: 'Ambient temperature in Celsius',
     required: false,
   })
   ambient?: number;
+
+  @ApiProperty({
+    description: 'Forecast temperature in Celsius',
+    required: false,
+  })
+  forecast?: number;
 }
 
 export class DeviceStatusDto implements DeviceStatus {
@@ -39,23 +39,25 @@ export class DeviceStatusDto implements DeviceStatus {
 
   @ApiProperty({
     description: 'Battery health state',
-    enum: BatteryHealthStateEnum,
+    type: String,
     required: false,
   })
-  batteryHealth?: BatteryHealthStateEnum;
+  batteryHealth?: BatteryHealthState;
 
   @ApiProperty({ description: 'Network type', enum: NetworkTypeEnum })
   networkType: NetworkTypeEnum;
-
-  @ApiProperty({ description: 'Network SSID', required: false })
-  ssid?: string;
 
   @ApiProperty({
     description: 'Temperature readings',
     type: TemperatureReadingsDto,
     required: false,
   })
-  temperature?: TemperatureReadingsDto;
+  temperatures?: TemperatureReadingsDto;
+
+  @ApiProperty({ description: 'Network SSID', required: false })
+  ssid?: string;
 }
 
-export type TemperatureType = keyof NonNullable<DeviceStatusDto['temperature']>;
+export type TemperatureType = keyof NonNullable<
+  DeviceStatusDto['temperatures']
+>;

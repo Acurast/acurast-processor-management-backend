@@ -3,8 +3,8 @@ import { DeviceStatus } from './device-status.entity';
 
 @Entity()
 export class Ssid {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({ unique: true })
   name: string;

@@ -2,6 +2,8 @@ import { Controller, Get, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { Response } from 'express';
 import { CacheService } from './processor/cache.service';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { FAVICON_BASE64 } from './processor/constants';
 
 @Controller()
 export class AppController {
@@ -203,5 +205,32 @@ export class AppController {
 
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
+  }
+
+  @Get('favicon.ico')
+  @ApiOperation({ summary: 'Get the favicon' })
+  @ApiResponse({
+    status: 200,
+    description: 'Favicon returned successfully',
+    content: {
+      'image/x-icon': {
+        schema: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Favicon not found' })
+  getFavicon(@Res() res: Response): void {
+    try {
+      const faviconBuffer = Buffer.from(FAVICON_BASE64, 'base64');
+      res.set('Content-Type', 'image/x-icon');
+      res.set('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+      res.send(faviconBuffer);
+    } catch (error) {
+      console.error('Error serving favicon:', error);
+      res.status(404).send('Favicon not found');
+    }
   }
 }

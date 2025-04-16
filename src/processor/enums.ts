@@ -5,8 +5,4 @@ export enum NetworkTypeEnum {
   UNKNOWN = 'unknown',
 }
 
-export enum BatteryHealthStateEnum {
-  GOOD = 'good',
-  BAD = 'bad',
-  CRITICAL = 'critical',
-}
+export type BatteryHealthState = string;

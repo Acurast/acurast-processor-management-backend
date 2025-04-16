@@ -1,4 +1,4 @@
-import { NetworkTypeEnum, BatteryHealthStateEnum } from './enums';
+import { NetworkTypeEnum, BatteryHealthState } from './enums';
 
 export interface TemperatureReadings {
   battery?: number;
@@ -12,8 +12,8 @@ export interface DeviceStatus {
   timestamp: number;
   batteryLevel: number;
   isCharging: boolean;
-  batteryHealth?: BatteryHealthStateEnum;
-  temperature?: TemperatureReadings;
+  batteryHealth?: BatteryHealthState;
+  temperatures?: TemperatureReadings;
   networkType: NetworkTypeEnum;
   ssid?: string;
 }
@@ -23,8 +23,8 @@ export interface CheckInRequest {
   timestamp: number;
   batteryLevel: number;
   isCharging: boolean;
-  batteryHealth?: BatteryHealthStateEnum;
-  temperature?: TemperatureReadings;
+  batteryHealth?: BatteryHealthState;
+  temperatures?: TemperatureReadings;
   networkType: NetworkTypeEnum;
   ssid?: string;
 }
