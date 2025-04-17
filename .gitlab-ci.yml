@@ -54,13 +54,14 @@ build-prod:
 .base_deployment:
   script:
     - apk update && apk add --no-cache git
-    - docker run -e COMMIT_HASH=$(git rev-parse HEAD) -e SENTRY_DSN=$SENTRY_DSN $IMAGE_TAG bash -c "yarn sentry:sourcemaps"
+    - docker run -e COMMIT_HASH=$(git rev-parse HEAD) -e SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN $IMAGE_TAG bash -c "yarn sentry:sourcemaps"
 
     # seds
     - find k8s -type f -name \*.yaml -exec sed -i "s|__NAMESPACE_NAME__|"$NAMESPACE"|g" {} +
     - find k8s -type f -name \*.yaml -exec sed -i "s|__TO_BE_REPLACED_BY_IMAGE_TAG__|"$IMAGE_TAG"|g" {} +
     - find k8s -type f -name \*.yaml -exec sed -i "s|__JWT_SECRET__|"$JWT_SECRET"|g" {} +
     - find k8s -type f -name \*.yaml -exec sed -i "s|__DB_PASSWORD__|"$DB_PASSWORD"|g" {} +
+    - find k8s -type f -name \*.yaml -exec sed -i "s|__SENTRY_AUTH_TOKEN__|"$SENTRY_AUTH_TOKEN"|g" {} +
     - find k8s -type f -name \*.yaml -exec sed -i "s|__SENTRY_DSN__|"$SENTRY_DSN"|g" {} +
     - find k8s -type f -name \*.yaml -exec sed -i "s|__API_KEY_READ__|"$API_KEY_READ"|g" {} +
     - find k8s -type f -name \*.yaml -exec sed -i "s|__API_KEY_WRITE__|"$API_KEY_WRITE"|g" {} +
