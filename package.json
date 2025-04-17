@@ -20,7 +20,10 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "check-in:batch": "npm run build:scripts && node dist/scripts/batch.js",
-    "check-in:single": "npm run build:scripts && node dist/scripts/check-in.js"
+    "check-in:single": "npm run build:scripts && node dist/scripts/check-in.js",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org papers --project acurast-processor-management-backend ./dist && sentry-cli --url https://reporting.papers.tech sourcemaps upload --org papers --project acurast-processor-management-backend ./dist",
+    "typeorm:generate": "npm run build && npx typeorm-ts-node-esm migration:generate -d ./dist/db/typeorm.config.js src/db/migrations/new-migration",
+    "typeorm:run-migrations": "npm run build && npx typeorm-ts-node-esm migration:run -d ./dist/db/typeorm.config.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
