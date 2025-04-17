@@ -1,29 +1,34 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, EntityManager } from 'typeorm';
+import {
+  Repository,
+  DataSource,
+  EntityManager,
+  QueryFailedError,
+} from 'typeorm';
 import {
   CheckInRequest,
   CheckInResponse,
   StatusResponse,
   HistoryResponse,
   ListResponse,
-} from './processor.controller';
+  DeviceListItem,
+} from './types';
+import { DeviceStatusDto } from './dto/device-status.dto';
 import { DeviceStatus } from './entities/device-status.entity';
 import { Processor } from './entities/processor.entity';
 import { NetworkType } from './entities/network-type.entity';
 import { BatteryHealth } from './entities/battery-health.entity';
 import { Ssid } from './entities/ssid.entity';
-import {
-  TemperatureReading,
-  TemperatureType,
-} from './entities/temperature-reading.entity';
+import { TemperatureReading } from './entities/temperature-reading.entity';
 import { CacheService } from './cache.service';
-import {
-  DeviceStatusDto,
-  NetworkTypeEnum as NetworkTypeEnum,
-  BatteryHealthStateEnum,
-  TemperatureType as TemperatureTypeEnum,
-} from './types';
+import { SignatureService } from './signature.service';
+import { NetworkTypeEnum, type BatteryHealthState } from './enums';
 
 @Injectable()
 export class ProcessorService {
@@ -48,6 +53,7 @@ export class ProcessorService {
     private temperatureReadingRepository: Repository<TemperatureReading>,
     private dataSource: DataSource,
     private cacheService: CacheService,
+    private signatureService: SignatureService,
   ) {
     // Initialize batch processing
     this.timer = setInterval(() => {
@@ -107,29 +113,35 @@ export class ProcessorService {
 
   private async getOrCreateSsid(
     manager: EntityManager,
-    name: string,
-  ): Promise<Ssid> {
-    // Check cache first
-    const cached = this.cacheService.getSsid(name);
+    ssidName: string | undefined,
+  ): Promise<Ssid | undefined> {
+    if (!ssidName) {
+      return undefined;
+    }
+
+    const cached = this.cacheService.getSsid(ssidName);
     if (cached) {
       return cached;
     }
 
-    let ssid = await manager.findOne(Ssid, {
-      where: { name },
+    const ssid = await manager.findOne(Ssid, {
+      where: { name: ssidName },
     });
-    if (!ssid) {
-      ssid = manager.create(Ssid, { name });
-      ssid = await manager.save(ssid);
+
+    if (ssid) {
+      this.cacheService.setSsid(ssidName, ssid);
+      return ssid;
     }
-    // Update cache with the SSID
-    this.cacheService.setSsid(ssid.name, ssid);
-    return ssid;
+
+    const newSsid = manager.create(Ssid, { name: ssidName });
+    await manager.save(newSsid);
+    this.cacheService.setSsid(ssidName, newSsid);
+    return newSsid;
   }
 
   private async getOrCreateBatteryHealth(
     manager: EntityManager,
-    state: BatteryHealthStateEnum | undefined,
+    state: BatteryHealthState | undefined,
   ): Promise<BatteryHealth | null> {
     if (!state) return null;
 
@@ -152,16 +164,17 @@ export class ProcessorService {
   }
 
   private transformToDto(deviceStatus: DeviceStatus): DeviceStatusDto {
-    const temperature: DeviceStatusDto['temperature'] = {
+    const temperatures: DeviceStatusDto['temperatures'] = {
       battery: undefined,
-      cpu: undefined,
-      gpu: undefined,
       ambient: undefined,
+      forecast: undefined,
     };
 
     deviceStatus.temperatureReadings?.forEach((reading) => {
-      const type = reading.type.toLowerCase() as TemperatureTypeEnum;
-      temperature[type] = reading.value;
+      const type = reading.type.toLowerCase() as keyof typeof temperatures;
+      if (type in temperatures) {
+        temperatures[type] = reading.value;
+      }
     });
 
     return {
@@ -169,17 +182,26 @@ export class ProcessorService {
       timestamp: deviceStatus.timestamp,
       batteryLevel: deviceStatus.batteryLevel,
       isCharging: deviceStatus.isCharging,
-      batteryHealth: deviceStatus.batteryHealth
-        ?.state as BatteryHealthStateEnum,
+      batteryHealth: deviceStatus.batteryHealth?.state,
       networkType: deviceStatus.networkType.type as NetworkTypeEnum,
+      temperatures,
       ssid: deviceStatus.ssid?.name,
-      temperature,
     };
   }
 
   async handleCheckIn(
     checkInRequest: CheckInRequest,
+    signature: string,
   ): Promise<CheckInResponse> {
+    // Verify the signature first
+    const isValid = await this.signatureService.verifySignature(
+      checkInRequest,
+      signature,
+    );
+    if (!isValid) {
+      throw new HttpException('Invalid signature', HttpStatus.UNAUTHORIZED);
+    }
+
     // Add to batch queue
     this.checkInQueue.push(checkInRequest);
     if (this.checkInQueue.length >= this.BATCH_SIZE) {
@@ -230,54 +252,77 @@ export class ProcessorService {
 
     // Process each check-in
     for (const checkIn of checkIns) {
-      const [networkType, ssid, batteryHealth] = await Promise.all([
-        this.getOrCreateNetworkType(manager, checkIn.networkType),
-        this.getOrCreateSsid(manager, checkIn.ssid),
-        this.getOrCreateBatteryHealth(manager, checkIn.batteryHealth),
-      ]);
+      try {
+        const [networkType, ssid, batteryHealth] = await Promise.all([
+          this.getOrCreateNetworkType(manager, checkIn.networkType),
+          this.getOrCreateSsid(manager, checkIn.ssid),
+          this.getOrCreateBatteryHealth(manager, checkIn.batteryHealth),
+        ]);
 
-      // Create device status
-      const deviceStatus = manager.create(DeviceStatus, {
-        processor,
-        timestamp: checkIn.timestamp,
-        batteryLevel: checkIn.batteryLevel,
-        isCharging: checkIn.isCharging,
-        batteryHealth: batteryHealth || undefined,
-        networkType,
-        ssid,
-        signature: checkIn.signature,
-      });
-      const savedDeviceStatus = await manager.save(deviceStatus);
+        // Create device status
+        const deviceStatus = manager.create(DeviceStatus, {
+          processor,
+          timestamp: checkIn.timestamp,
+          batteryLevel: checkIn.batteryLevel,
+          isCharging: checkIn.isCharging,
+          batteryHealth: batteryHealth || undefined,
+          networkType,
+          ssid,
+        });
+        const savedDeviceStatus = await manager.save(deviceStatus);
 
-      // Create temperature readings if provided
-      if (checkIn.temperature) {
-        const temperatureReadings = Object.entries(checkIn.temperature)
-          .filter(([, value]) => value !== undefined)
-          .map(([type, value]) =>
-            manager.create(TemperatureReading, {
-              deviceStatus: savedDeviceStatus,
-              type: type as TemperatureType,
-              value,
-            }),
-          );
-        await manager.save(temperatureReadings);
-      }
+        // Create temperature readings if provided
+        if (checkIn.temperatures) {
+          const temperatureReadings = Object.entries(checkIn.temperatures)
+            .filter(([type, value]) => {
+              // Only include valid temperature types
+              const validTypes = ['battery', 'cpu', 'gpu', 'ambient'] as const;
+              return (
+                value !== undefined &&
+                validTypes.includes(type as (typeof validTypes)[number])
+              );
+            })
+            .map(([type, value]) =>
+              manager.create(TemperatureReading, {
+                deviceStatus: savedDeviceStatus,
+                type: type as 'battery' | 'cpu' | 'gpu' | 'ambient',
+                value: value as number,
+              }),
+            );
+          await manager.save(temperatureReadings);
+        }
 
-      // Load the complete device status with all relations
-      const completeDeviceStatus = await manager.findOne(DeviceStatus, {
-        where: { id: savedDeviceStatus.id },
-        relations: [
-          'processor',
-          'networkType',
-          'ssid',
-          'batteryHealth',
-          'temperatureReadings',
-        ],
-      });
+        // Load the complete device status with all relations
+        const completeDeviceStatus = await manager.findOne(DeviceStatus, {
+          where: { id: savedDeviceStatus.id },
+          relations: [
+            'processor',
+            'networkType',
+            'ssid',
+            'batteryHealth',
+            'temperatureReadings',
+          ],
+        });
 
-      // Update cache with the complete device status
-      if (completeDeviceStatus) {
-        this.cacheService.setDeviceStatus(address, completeDeviceStatus);
+        // Update cache with the complete device status
+        if (completeDeviceStatus) {
+          this.cacheService.setDeviceStatus(address, completeDeviceStatus);
+        }
+      } catch (error) {
+        // Handle unique constraint error for duplicate reports
+        if (
+          error instanceof QueryFailedError &&
+          (error.driverError as { code?: string })?.code ===
+            'SQLITE_CONSTRAINT' &&
+          error.message.includes(
+            'UNIQUE constraint failed: device_status.processorId, device_status.timestamp',
+          )
+        ) {
+          // Silently continue - this is an expected case for duplicate reports
+          continue;
+        }
+        // Re-throw other errors
+        throw error;
       }
     }
   }
@@ -363,14 +408,15 @@ export class ProcessorService {
       .getMany();
 
     // Transform the data to include only the latest status for each processor
-    const devices = processors.map((processor) => {
+    const devices: DeviceListItem[] = processors.map((processor) => {
       const latestStatus = processor.statuses[0];
       return {
         address: processor.address,
         lastSeen: latestStatus?.timestamp || 0,
         batteryLevel: latestStatus?.batteryLevel || 0,
         isCharging: latestStatus?.isCharging || false,
-        networkType: latestStatus?.networkType?.type || 'unknown',
+        networkType: (latestStatus?.networkType?.type ||
+          NetworkTypeEnum.UNKNOWN) as NetworkTypeEnum,
         ssid: latestStatus?.ssid?.name || 'unknown',
       };
     });

@@ -3,8 +3,8 @@ import { DeviceStatus } from './device-status.entity';
 
 @Entity()
 export class BatteryHealth {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({ unique: true })
   state: string;

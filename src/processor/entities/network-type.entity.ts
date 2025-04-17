@@ -3,8 +3,8 @@ import { DeviceStatus } from './device-status.entity';
 
 @Entity()
 export class NetworkType {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({ unique: true })
   type: string;

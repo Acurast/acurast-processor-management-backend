@@ -1,0 +1,112 @@
+include:
+  - project: 'papers/acurast/acurast-infra'
+    file: '/.base-gitlab-ci.yml'
+  - component: gitlab.papers.tech/papers/papers-internal/ci-cd-components/publish-local-registry@v0.0.44
+    inputs:
+      existing-tag: $GOOGLE_TAG-development
+      tag-to-publish: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  - component: gitlab.papers.tech/papers/papers-internal/ci-cd-components/k8s-publish-prod@v0.0.40
+    inputs:
+      existing-tag: $GOOGLE_TAG-production
+      tag-to-publish: $GOOGLE_TAG-production
+  - component: gitlab.papers.tech/papers/papers-internal/ci-cd-components/deploy-self-hosted-dev@v0.0.44
+    inputs:
+      extends_script: .deploy-dev
+      environment: development
+  - component: gitlab.papers.tech/papers/papers-internal/ci-cd-components/k8s-deploy-prod@v0.0.40
+    inputs:
+      extends_script: .deploy-prod
+      environment: production
+
+variables:
+  TEST_TAG: $CI_PROJECT_NAME:test_$CI_COMMIT_SHA
+  NAMESPACE: 'acurast-processor-management-backend'
+  DB_NAME: acurast_processor_management_backend
+  DB_USER: acurast_processor_management_backend
+
+stages:
+  - build
+  - publish
+  - deploy
+  - provision
+  - drop
+
+.base_build:
+  script:
+    - docker build -t $GOOGLE_TAG-$CI_ENVIRONMENT_NAME .
+
+build-dev:
+  stage: build
+  script:
+    - !reference [.base_build, script]
+  environment:
+    name: development
+    action: prepare
+
+build-prod:
+  stage: build
+  script:
+    - !reference [.base_build, script]
+  environment:
+    name: production
+    action: prepare
+
+.base_deployment:
+  script:
+    - apk update && apk add --no-cache git
+    - docker run -e COMMIT_HASH=$(git rev-parse HEAD) -e SENTRY_DSN=$SENTRY_DSN $IMAGE_TAG bash -c "yarn sentry:sourcemaps"
+
+    # seds
+    - find k8s -type f -name \*.yaml -exec sed -i "s|__NAMESPACE_NAME__|"$NAMESPACE"|g" {} +
+    - find k8s -type f -name \*.yaml -exec sed -i "s|__TO_BE_REPLACED_BY_IMAGE_TAG__|"$IMAGE_TAG"|g" {} +
+    - find k8s -type f -name \*.yaml -exec sed -i "s|__JWT_SECRET__|"$JWT_SECRET"|g" {} +
+    - find k8s -type f -name \*.yaml -exec sed -i "s|__DB_PASSWORD__|"$DB_PASSWORD"|g" {} +
+    - find k8s -type f -name \*.yaml -exec sed -i "s|__SENTRY_DSN__|"$SENTRY_DSN"|g" {} +
+    - find k8s -type f -name \*.yaml -exec sed -i "s|__API_KEY_READ__|"$API_KEY_READ"|g" {} +
+    - find k8s -type f -name \*.yaml -exec sed -i "s|__API_KEY_WRITE__|"$API_KEY_WRITE"|g" {} +
+
+    # applying the files
+    - kubectl apply -f k8s/common/namespace.yaml
+    # - kubectl apply -f k8s/common/secret.yaml
+    - kubectl apply -f k8s/$CI_ENVIRONMENT_NAME/ --recursive
+    - kubectl apply -f k8s/common/ --recursive
+
+.deploy-dev:
+  extends: .base_deployment
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    DB_HOST: $PG_HOST_DEV
+  environment:
+    name: development
+
+.deploy-prod:
+  extends: .base_deployment
+  variables:
+    IMAGE_TAG: $GOOGLE_TAG-production
+    DB_HOST: $PG_HOST_PROD
+  environment:
+    name: production
+
+provision-db-development:
+  stage: provision
+  extends: .provision_dev_db
+  variables:
+    DB_NAME: $DB_NAME
+    DB_USER: $DB_USER
+    DB_PASSWORD: $DB_PASSWORD
+
+drop-db-development:
+  stage: provision
+  extends: .drop_dev_db
+  variables:
+    DB_NAME: $DB_NAME
+    DB_USER: $DB_USER
+    DB_PASSWORD: $DB_PASSWORD
+
+provision-db-production:
+  stage: provision
+  extends: .provision_prod_db
+  variables:
+    DB_NAME: $DB_NAME
+    DB_USER: $DB_USER
+    DB_PASSWORD: $DB_PASSWORD

@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Device List</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .device-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+      }
+      .device-card {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        transition: transform 0.2s;
+      }
+      .device-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .device-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .device-address {
+        font-weight: bold;
+        color: #2c3e50;
+      }
+      .last-seen {
+        color: #666;
+        font-size: 0.9em;
+      }
+      .device-info {
+        margin: 10px 0;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        color: #555;
+      }
+      .info-label {
+        font-weight: 500;
+      }
+      .battery-level {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .battery-icon {
+        width: 20px;
+        height: 20px;
+      }
+      .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+      }
+      .status-active {
+        background-color: #2ecc71;
+      }
+      .status-inactive {
+        background-color: #e74c3c;
+      }
+      .status-unknown {
+        background-color: #95a5a6;
+      }
+      .network-type {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .network-icon {
+        width: 16px;
+        height: 16px;
+      }
+      .error-message {
+        color: #e74c3c;
+        text-align: center;
+        padding: 20px;
+        background-color: #fde8e8;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+      .device-actions {
+        margin-top: 10px;
+        text-align: right;
+      }
+      .action-link {
+        margin-left: 10px;
+        text-decoration: none;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Device List</h1>
+      {{#if error}}
+      <div class="error-message">{{error}}</div>
+      {{else}}
+      <div class="device-grid">
+        {{#each devices}}
+        <div class="device-card">
+          <div class="device-header">
+            <span class="device-address">{{address}}</span>
+            <span class="last-seen"
+              >Last seen: {{formatTimestamp lastSeen}}</span
+            >
+          </div>
+          <div class="device-info">
+            <div class="info-row">
+              <span class="info-label">Battery Level:</span>
+              <span class="battery-level">
+                {{#if isCharging}}
+                <img
+                  src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PHBhdGggZD0iTTExIDEwaDIiLz48L3N2Zz4="
+                  class="battery-icon"
+                  alt="Charging"
+                />
+                {{else}}
+                <img
+                  src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PC9zdmc+"
+                  class="battery-icon"
+                  alt="Battery"
+                />
+                {{/if}} {{batteryLevel}}%
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Network:</span>
+              <span class="network-type">
+                {{#if networkType}}
+                <img
+                  src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgMmw2IDZ2MTJhMiAyIDAgMCAxLTIgMkg4YTIgMiAwIDAgMS0yLTJWN2w2LTZ6Ii8+PHBhdGggZD0iTTEyIDZ2MTIiLz48cGF0aCBkPSJNOCAxMmg4Ii8+PC9zdmc+"
+                  class="network-icon"
+                  alt="Network"
+                />
+                {{networkType}} {{else}}
+                <span class="status-unknown">Unknown</span>
+                {{/if}}
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">SSID:</span>
+              <span>{{ssid}}</span>
+            </div>
+          </div>
+          <div class="device-actions">
+            <a href="/processor/web/{{address}}/status" class="action-link"
+              >View Status</a
+            >
+            <a href="/processor/web/{{address}}/history" class="action-link"
+              >View History</a
+            >
+            <a href="/processor/web/{{address}}/graph" class="action-link"
+              >View Graph</a
+            >
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+    </div>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    ingress.kubernetes.io/proxy-body-size: 500m
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: 500m
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.kubernetes.io/proxy-body-size: 500m
+  name: __NAMESPACE_NAME__
+  namespace: __NAMESPACE_NAME__
+spec:
+  rules:
+    - host: __NAMESPACE_NAME__.dev.cluster.papers.tech
+      http:
+        paths:
+          - backend:
+              service:
+                name: __NAMESPACE_NAME__-service
+                port:
+                  number: 9001
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - __NAMESPACE_NAME__.dev.cluster.papers.tech
+      secretName: __NAMESPACE_NAME__-tls
