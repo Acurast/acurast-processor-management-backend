@@ -30,6 +30,7 @@
     "@nestjs/swagger": "^11.1.0",
     "@nestjs/typeorm": "^11.0.0",
     "@noble/ed25519": "^2.2.3",
+    "@sentry/node": "^9.13.0",
     "blakejs": "^1.2.1",
     "bs58": "^6.0.0",
     "elliptic": "^6.6.1",
