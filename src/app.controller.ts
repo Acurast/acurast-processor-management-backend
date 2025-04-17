@@ -12,6 +12,11 @@ export class AppController {
     private readonly cacheService: CacheService,
   ) {}
 
+  @Get('/health')
+  async healthCheck() {
+    return "I'm healthy";
+  }
+
   @Get()
   async getHomePage(@Res() res: Response): Promise<void> {
     const stats = await this.appService.getStats();
