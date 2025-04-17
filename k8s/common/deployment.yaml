@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __NAMESPACE_NAME__
+  namespace: __NAMESPACE_NAME__
+spec:
+  selector:
+    matchLabels:
+      app: __NAMESPACE_NAME__
+  strategy:
+    type: Recreate
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 1
+    #   maxUnavailable: 0
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: __NAMESPACE_NAME__
+    spec:
+      containers:
+        - image: __TO_BE_REPLACED_BY_IMAGE_TAG__
+          imagePullPolicy: IfNotPresent
+          name: __NAMESPACE_NAME__-backend
+          envFrom:
+            - secretRef:
+                name: __NAMESPACE_NAME__-secret
+            - configMapRef:
+                name: __NAMESPACE_NAME__-config-map
+          ports:
+            - containerPort: 9001
+          readinessProbe:
+            httpGet:
+              path: /health # Readiness probe to check if app is ready to serve traffic
+              port: 9001
+            initialDelaySeconds: 30
+            periodSeconds: 10 # Checks every 10 seconds for readiness
+            timeoutSeconds: 30
+          resources:
+            requests:
+              cpu: '0.2'
+              memory: 200Mi
+            limits:
+              cpu: '0.5'
+              memory: 500Mi
+      initContainers:
+        - name: run-migrations
+          image: __TO_BE_REPLACED_BY_IMAGE_TAG__
+          envFrom:
+            - secretRef:
+                name: __NAMESPACE_NAME__-secret
+            - configMapRef:
+                name: __NAMESPACE_NAME__-config-map
+          command: ['npm', 'run', 'typeorm:run-migrations']
+      restartPolicy: Always
