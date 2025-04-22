@@ -20,6 +20,7 @@ export interface DeviceStatus {
 
 export interface CheckInRequest {
   deviceAddress: string;
+  platform: number; // 0 = Android, 1 = iOS
   timestamp: number;
   batteryLevel: number;
   isCharging: boolean;
