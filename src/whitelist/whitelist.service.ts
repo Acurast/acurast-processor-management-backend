@@ -14,7 +14,7 @@ export class WhitelistService implements OnModuleInit {
     const whitelistString = this.configService.get<string>(
       'PROCESSOR_WHITELIST',
       '',
-    ) as string;
+    );
 
     if (whitelistString.trim() === '') {
       this.logger.log(
