@@ -312,12 +312,12 @@ export class ProcessorService {
         // Handle unique constraint error for duplicate reports
         if (
           error instanceof QueryFailedError &&
-          (error.driverError as { code?: string })?.code ===
-            'SQLITE_CONSTRAINT' &&
+          (error.driverError as { code?: string })?.code === '23505' &&
           error.message.includes(
-            'UNIQUE constraint failed: device_status.processorId, device_status.timestamp',
+            'duplicate key value violates unique constraint',
           )
         ) {
+          console.warn('Duplicate report detected', address, checkIn.timestamp);
           // Silently continue - this is an expected case for duplicate reports
           continue;
         }
