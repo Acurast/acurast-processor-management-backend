@@ -1,98 +1,194 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Acurast Processor Management Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A management backend for processors on Acurast that allows for storing and retrieving battery percentages and other device status information. This service provides an API for managing device check-ins, monitoring battery levels, and tracking device statuses across the Acurast network.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- Device check-in management
+- Battery level tracking
+- Device status monitoring
+- Network type tracking
+- Battery health monitoring
+- Temperature readings
+- Web interface for device management
+- Swagger API documentation
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## API Documentation
 
-## Project setup
+The API is documented using Swagger/OpenAPI specification. You can access the interactive API documentation at `http://localhost:9001/api` when the server is running. The documentation includes:
 
-```bash
-$ npm install
+- Detailed request/response schemas
+- Authentication requirements
+- Example requests and responses
+- Available endpoints and their parameters
+- Response codes and error messages
+
+### API Endpoints
+
+### Web Interface
+
+- **GET** `/processor/web/list` - Device list view
+- **GET** `/processor/web/:address/status` - Device status view
+- **GET** `/processor/web/:address/history` - Device history view
+- **GET** `/processor/web/:address/graph` - Device graph view
+
+#### Device Status
+
+- **GET** `/processor/api/devices/:address/status`
+  - Parameters:
+    - `address`: Device address (path parameter)
+  - Returns: `{ deviceStatus: DeviceStatus }`
+  - Response Codes:
+    - 200: Device status retrieved successfully
+    - 404: Device not found
+
+#### Device History
+
+- **GET** `/processor/api/devices/:address/history`
+  - Parameters:
+    - `address`: Device address (path parameter)
+    - `limit`: Number of history entries to return (query parameter, optional, default: 10)
+  - Returns: `{ history: DeviceStatus[] }`
+  - Response Codes:
+    - 200: Device history retrieved successfully
+    - 404: Device not found
+
+#### Device Check-in (done by processor)
+
+- **POST** `/processor/check-in`
+  - Headers: `X-Device-Signature` (required)
+  - Body:
+    ```json
+    {
+      "deviceAddress": "string",
+      "platform": "number (0 = Android, 1 = iOS)",
+      "timestamp": "number",
+      "batteryLevel": "number",
+      "isCharging": "boolean",
+      "batteryHealth": "string (optional)",
+      "temperatures": {
+        "battery": "number (optional)",
+        "ambient": "number (optional)",
+        "forecast": "number (optional)"
+      },
+      "networkType": "string",
+      "ssid": "string (optional)"
+    }
+    ```
+  - Returns: `{ success: boolean, refreshIntervalInSeconds: number }`
+  - Response Codes:
+    - 200: Check-in successful
+    - 403: Processor not whitelisted
+    - 401: Invalid signature
+
+### Data Types
+
+#### DeviceStatus
+
+```typescript
+interface DeviceStatus {
+  address: string; // Device address
+  timestamp: number; // Unix timestamp of the status update
+  batteryLevel: number; // Battery level percentage (0-100)
+  isCharging: boolean; // Whether the device is currently charging
+  batteryHealth?: string; // Battery health state
+  temperatures?: {
+    // Temperature readings
+    battery?: number; // Battery temperature
+    ambient?: number; // Ambient temperature
+    forecast?: number; // Forecast temperature
+  };
+  networkType: NetworkTypeEnum; // Network connection type
+  ssid?: string; // Network SSID
+}
+
+enum NetworkTypeEnum {
+  WIFI = 'wifi',
+  CELLULAR = 'cellular',
+  USB = 'usb',
+  UNKNOWN = 'unknown',
+}
 ```
 
-## Compile and run the project
+## Building and Running Locally
 
-```bash
-# development
-$ npm run start
+### Prerequisites
 
-# watch mode
-$ npm run start:dev
+- Node.js 20 or later
+- PostgreSQL 13 or later
+- npm or yarn
 
-# production mode
-$ npm run start:prod
-```
+### Setup
 
-## Run tests
+1. Clone the repository:
 
-```bash
-# unit tests
-$ npm run test
+   ```bash
+   git clone <repository-url>
+   cd acurast-processor-management-backend
+   ```
 
-# e2e tests
-$ npm run test:e2e
+2. Install dependencies:
 
-# test coverage
-$ npm run test:cov
-```
+   ```bash
+   npm install
+   ```
 
-## Deployment
+3. Create a `.env` file with the following variables:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+   ```
+   PORT=9001
+   ENVIRONMENT=development
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=acurast_processor_management_backend
+   DB_USER=acurast_processor_management_backend
+   DB_PASSWORD=your_password
+   ```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+4. Run database migrations:
 
-```bash
-$ npm install -g mau
-$ mau deploy
-```
+   ```bash
+   npm run typeorm:run-migrations
+   ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+5. Build the project:
 
-## Resources
+   ```bash
+   npm run build
+   ```
 
-Check out a few resources that may come in handy when working with NestJS:
+6. Start the server:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+   ```bash
+   # Development mode
+   npm run start:dev
 
-## Support
+   # Production mode
+   npm run start:prod
+   ```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+The server will start on port 9001 by default. You can access:
 
-## Stay in touch
+- API documentation at `http://localhost:9001/api`
+- Web interface at `http://localhost:9001/processor/web/list`
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Development
+
+### Available Scripts
+
+- `npm run build` - Build the project
+- `npm run start:dev` - Start in development mode with hot reload
+- `npm run start:debug` - Start in debug mode
+- `npm run start:prod` - Start in production mode
+- `npm run test` - Run tests
+- `npm run test:e2e` - Run end-to-end tests
+- `npm run lint` - Run linter
+- `npm run format` - Format code
+
+### Docker Support
+
+The project includes Docker support for both development and production environments. Use the provided Dockerfile and docker-compose.yml for containerized deployment.
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED
