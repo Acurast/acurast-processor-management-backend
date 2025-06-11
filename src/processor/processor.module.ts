@@ -26,5 +26,6 @@ import { WhitelistModule } from '../whitelist/whitelist.module';
   ],
   controllers: [ProcessorController],
   providers: [ProcessorService, CacheService, SignatureService],
+  exports: [CacheService],
 })
 export class ProcessorModule {}

@@ -4,7 +4,6 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProcessorModule } from './processor/processor.module';
-import { CacheService } from './processor/cache.service';
 import { WhitelistModule } from './whitelist/whitelist.module';
 import { getTypeormConfig } from './db/typeorm.config';
 import { DeviceStatus } from './processor/entities/device-status.entity';
@@ -19,6 +18,6 @@ import { Processor } from './processor/entities/processor.entity';
     WhitelistModule,
   ],
   controllers: [AppController],
-  providers: [AppService, CacheService],
+  providers: [AppService],
 })
 export class AppModule {}
