@@ -128,6 +128,7 @@ export class AppController {
         <body>
           <h1>Acurast Processor Management API</h1>
           <p>Welcome to the Acurast Processor Management API. This service manages device statuses and check-ins for Acurast processors.</p>
+          <p><a href="https://github.com/Acurast/acurast-processor-management-backend" target="_blank" style="color: #0366d6; text-decoration: none;">View on GitHub ↗</a></p>
           
           <div class="stats">
             <div class="stat-card">

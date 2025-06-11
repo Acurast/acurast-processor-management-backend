@@ -1,0 +1,60 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Development files
+.vscode
+.idea
+*.md
+*.log
+.env*
+.editorconfig
+.eslintrc*
+.prettierrc*
+jest-*.json
+
+# Build output
+dist
+build
+coverage
+
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Test files
+test
+__tests__
+*.spec.ts
+*.test.ts
+
+# Data and temporary files
+data
+tmp
+temp
+*.tmp
+
+# Documentation
+docs
+LICENSE
+
+# Debug files
+.debug
+*.debug
+
+# Keep TypeScript config files
+!tsconfig.json
+!tsconfig.build.json
+
+*.tar
+db.sqlite
+dist/*
+node_modules/*
