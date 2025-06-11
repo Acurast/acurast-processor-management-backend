@@ -108,7 +108,7 @@ export class ProcessorService {
       networkType = await manager.save(networkType);
     }
     // Update cache with the network type
-    this.cacheService.setNetworkType(networkType.type, networkType);
+    this.cacheService.setNetworkType(networkType);
     return networkType;
   }
 
@@ -130,13 +130,13 @@ export class ProcessorService {
     });
 
     if (ssid) {
-      this.cacheService.setSsid(ssidName, ssid);
+      this.cacheService.setSsid(ssid);
       return ssid;
     }
 
     const newSsid = manager.create(Ssid, { name: ssidName });
     await manager.save(newSsid);
-    this.cacheService.setSsid(ssidName, newSsid);
+    this.cacheService.setSsid(newSsid);
     return newSsid;
   }
 
@@ -160,7 +160,7 @@ export class ProcessorService {
       batteryHealth = await manager.save(batteryHealth);
     }
     // Update cache with the battery health
-    this.cacheService.setBatteryHealth(batteryHealth.state, batteryHealth);
+    this.cacheService.setBatteryHealth(batteryHealth);
     return batteryHealth;
   }
 
@@ -254,6 +254,18 @@ export class ProcessorService {
     // Process each check-in
     for (const checkIn of checkIns) {
       try {
+        // Check for duplicate in cache first
+        if (
+          this.cacheService.hasNewerDeviceStatus(address, checkIn.timestamp)
+        ) {
+          console.warn(
+            'Duplicate or newer report detected in cache',
+            address,
+            checkIn.timestamp,
+          );
+          continue;
+        }
+
         const [networkType, ssid, batteryHealth] = await Promise.all([
           this.getOrCreateNetworkType(manager, checkIn.networkType),
           this.getOrCreateSsid(manager, checkIn.ssid),
@@ -270,6 +282,8 @@ export class ProcessorService {
           networkType,
           ssid,
         });
+
+        // Save to database
         const savedDeviceStatus = await manager.save(deviceStatus);
 
         // Create temperature readings if provided
@@ -307,10 +321,10 @@ export class ProcessorService {
 
         // Update cache with the complete device status
         if (completeDeviceStatus) {
-          this.cacheService.setDeviceStatus(address, completeDeviceStatus);
+          this.cacheService.setDeviceStatus(completeDeviceStatus);
         }
       } catch (error) {
-        // Handle unique constraint error for duplicate reports
+        // Handle unique constraint error for duplicate reports (fallback)
         if (
           error instanceof QueryFailedError &&
           (error.driverError as { code?: string })?.code === '23505' &&
@@ -318,8 +332,11 @@ export class ProcessorService {
             'duplicate key value violates unique constraint',
           )
         ) {
-          console.warn('Duplicate report detected', address, checkIn.timestamp);
-          // Silently continue - this is an expected case for duplicate reports
+          console.warn(
+            'Duplicate report detected in database',
+            address,
+            checkIn.timestamp,
+          );
           continue;
         }
         // Re-throw other errors
@@ -330,7 +347,7 @@ export class ProcessorService {
 
   async getDeviceStatus(deviceAddress: string): Promise<StatusResponse> {
     // Check cache first
-    const cached = this.cacheService.getDeviceStatus(deviceAddress);
+    const cached = this.cacheService.getLatestDeviceStatus(deviceAddress);
     if (cached) {
       return { deviceStatus: this.transformToDto(cached) };
     }
@@ -352,7 +369,7 @@ export class ProcessorService {
     }
 
     // Update cache
-    this.cacheService.setDeviceStatus(deviceAddress, latestStatus);
+    this.cacheService.setDeviceStatus(latestStatus);
 
     return { deviceStatus: this.transformToDto(latestStatus) };
   }
@@ -361,6 +378,7 @@ export class ProcessorService {
     deviceAddress: string,
     limit: number,
   ): Promise<HistoryResponse> {
+    // Get from database since we only cache the latest status
     const history = await this.deviceStatusRepository.find({
       where: { processor: { address: deviceAddress } },
       order: { timestamp: 'DESC' },
@@ -376,6 +394,11 @@ export class ProcessorService {
 
     if (!history.length) {
       throw new NotFoundException('Device not found');
+    }
+
+    // Update cache with the latest status
+    if (history.length > 0) {
+      this.cacheService.setDeviceStatus(history[0]);
     }
 
     return {
@@ -470,7 +493,7 @@ export class ProcessorService {
 
       // Update cache with new statuses
       uncachedStatuses.forEach((status) => {
-        this.cacheService.setDeviceStatus(status.processor.address, status);
+        this.cacheService.setDeviceStatus(status);
       });
     }
 

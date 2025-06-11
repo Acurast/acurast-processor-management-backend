@@ -494,21 +494,15 @@ export class ProcessorController {
   })
   async getCacheContents() {
     return {
-      processorCache: Array.from(
-        this.processorService.cacheService['processorCache'].entries(),
-      ),
-      deviceStatusCache: Array.from(
-        this.processorService.cacheService['deviceStatusCache'].entries(),
-      ),
-      networkTypeCache: Array.from(
-        this.processorService.cacheService['networkTypeCache'].entries(),
-      ),
-      batteryHealthCache: Array.from(
-        this.processorService.cacheService['batteryHealthCache'].entries(),
-      ),
-      ssidCache: Array.from(
-        this.processorService.cacheService['ssidCache'].entries(),
-      ),
+      processorCache:
+        this.processorService.cacheService.getProcessorCacheContents(),
+      deviceStatusCache:
+        this.processorService.cacheService.getDeviceStatusCacheContents(),
+      networkTypeCache:
+        this.processorService.cacheService.getNetworkTypeCacheContents(),
+      batteryHealthCache:
+        this.processorService.cacheService.getBatteryHealthCacheContents(),
+      ssidCache: this.processorService.cacheService.getSsidCacheContents(),
     };
   }
 }

@@ -46,7 +46,7 @@ export const getTypeormConfig = (): DataSourceOptions => {
     username: process.env.DB_USER,
     entities: entities,
     database: process.env.DB_NAME,
-    // logging: ['query', 'error'],
+    // logging: 'all', // ['query', 'error'],
     // logger: 'simple-console',
     maxQueryExecutionTime: 500,
     // dropSchema: true,
