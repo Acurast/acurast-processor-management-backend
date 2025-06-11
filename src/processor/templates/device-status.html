@@ -104,65 +104,145 @@
         border-radius: 8px;
         margin: 20px 0;
       }
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+      .refresh-button {
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 20px;
+      }
+      .refresh-button:hover {
+        background: #0056b3;
+      }
+      .back-link {
+        display: inline-block;
+        margin-bottom: 1rem;
+        color: #007bff;
+        text-decoration: none;
+      }
+      .back-link:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
     <div class="container">
+      <a href="/processor/list" class="back-link">← Back to Device List</a>
       <h1>Device Status</h1>
-      {{#if error}}
-      <div class="error-message">{{error}}</div>
-      {{else}}
-      <div class="device-card">
-        <div class="device-header">
-          <span class="device-address">{{deviceStatus.address}}</span>
-          <span class="timestamp"
-            >Last updated: {{formatTimestamp deviceStatus.timestamp}}</span
-          >
-        </div>
-        <div class="info-grid">
-          <div class="info-section">
-            <div class="info-title">Battery Status</div>
-            <div class="battery-section">
-              {{#if deviceStatus.isCharging}}
-              <img
-                src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PHBhdGggZD0iTTExIDEwaDIiLz48L3N2Zz4="
-                class="battery-icon"
-                alt="Charging"
-              />
-              {{else}}
-              <img
-                src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PC9zdmc+"
-                class="battery-icon"
-                alt="Battery"
-              />
-              {{/if}}
-              <span class="info-value">{{deviceStatus.batteryLevel}}%</span>
-            </div>
-            {{#if deviceStatus.batteryHealth}}
-            <div class="info-value">Health: {{deviceStatus.batteryHealth}}</div>
-            {{/if}}
-          </div>
-          <div class="info-section">
-            <div class="info-title">Network Information</div>
-            <div class="info-value">Type: {{deviceStatus.networkType}}</div>
-            {{#if deviceStatus.ssid}}
-            <div class="info-value">SSID: {{deviceStatus.ssid}}</div>
-            {{/if}}
-          </div>
-          <div class="info-section">
-            <div class="info-title">Temperature Readings</div>
-            <div class="temperature-grid">
-              {{#each deviceStatus.temperature}} {{#if this}}
-              <div class="temperature-item">
-                <span class="temperature-label">{{@key}}</span>
-                <span class="temperature-value">{{this}}°C</span>
-              </div>
-              {{/if}} {{/each}}
-            </div>
-          </div>
-        </div>
+      <div id="content">
+        <div class="loading">Loading device status...</div>
       </div>
-      {{/if}}
     </div>
+
+    <script>
+      let deviceAddress = '';
+
+      function formatTimestamp(timestamp) {
+        return new Date(timestamp * 1000).toLocaleString();
+      }
+
+      function showError(message) {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="error-message">${message}</div>
+        `;
+      }
+
+      function renderStatus(deviceStatus) {
+        if (!deviceStatus) {
+          showError('No device status available');
+          return;
+        }
+
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <button class="refresh-button" onclick="loadStatus()">Refresh</button>
+          <div class="device-card">
+            <div class="device-header">
+              <span class="device-address">${deviceStatus.address}</span>
+              <span class="timestamp">Last updated: ${formatTimestamp(deviceStatus.timestamp)}</span>
+            </div>
+            <div class="info-grid">
+              <div class="info-section">
+                <div class="info-title">Battery Status</div>
+                <div class="battery-section">
+                  ${
+                    deviceStatus.isCharging
+                      ? `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PHBhdGggZD0iTTExIDEwaDIiLz48L3N2Zz4=" class="battery-icon" alt="Charging" />`
+                      : `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PC9zdmc+" class="battery-icon" alt="Battery" />`
+                  }
+                  <span class="info-value">${deviceStatus.batteryLevel}%</span>
+                </div>
+                ${deviceStatus.batteryHealth ? `<div class="info-value">Health: ${deviceStatus.batteryHealth}</div>` : ''}
+              </div>
+              <div class="info-section">
+                <div class="info-title">Network Information</div>
+                <div class="info-value">Type: ${deviceStatus.networkType || 'Unknown'}</div>
+                ${deviceStatus.ssid ? `<div class="info-value">SSID: ${deviceStatus.ssid}</div>` : ''}
+              </div>
+              <div class="info-section">
+                <div class="info-title">Temperature Readings</div>
+                <div class="temperature-grid">
+                  ${Object.entries(deviceStatus.temperature || {})
+                    .map(([key, value]) =>
+                      value
+                        ? `
+                      <div class="temperature-item">
+                        <span class="temperature-label">${key}</span>
+                        <span class="temperature-value">${value}°C</span>
+                      </div>
+                    `
+                        : '',
+                    )
+                    .join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      async function loadStatus() {
+        const content = document.getElementById('content');
+        content.innerHTML =
+          '<div class="loading">Loading device status...</div>';
+
+        try {
+          const response = await fetch(
+            `/processor/api/devices/${deviceAddress}/status`,
+          );
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          renderStatus(data.deviceStatus);
+        } catch (error) {
+          console.error('Error fetching device status:', error);
+          showError(`Error loading device status: ${error.message}`);
+        }
+      }
+
+      function init() {
+        // Get device address from URL
+        const pathParts = window.location.pathname.split('/');
+        deviceAddress = pathParts[pathParts.length - 2];
+
+        if (!deviceAddress) {
+          showError('No device address provided');
+          return;
+        }
+
+        loadStatus();
+      }
+
+      window.onload = init;
+    </script>
   </body>
 </html>

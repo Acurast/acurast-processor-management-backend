@@ -9,7 +9,7 @@
         background-color: #f5f5f5;
       }
       .container {
-        max-width: 1200px;
+        max-width: 95%;
         margin: 0 auto;
         background-color: white;
         padding: 20px;
@@ -20,47 +20,34 @@
         color: #333;
         margin-bottom: 20px;
       }
-      .device-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 20px;
+      .device-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
       }
-      .device-card {
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 15px;
-        transition: transform 0.2s;
+      .device-table th {
+        background-color: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #2c3e50;
+        border-bottom: 2px solid #dee2e6;
       }
-      .device-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      .device-table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+        vertical-align: middle;
       }
-      .device-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
+      .device-table tr:hover {
+        background-color: #f8f9fa;
       }
       .device-address {
-        font-weight: bold;
+        font-weight: 500;
         color: #2c3e50;
       }
       .last-seen {
         color: #666;
         font-size: 0.9em;
-      }
-      .device-info {
-        margin: 10px 0;
-      }
-      .info-row {
-        display: flex;
-        justify-content: space-between;
-        margin: 5px 0;
-        color: #555;
-      }
-      .info-label {
-        font-weight: 500;
       }
       .battery-level {
         display: flex;
@@ -70,22 +57,6 @@
       .battery-icon {
         width: 20px;
         height: 20px;
-      }
-      .status-indicator {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin-right: 5px;
-      }
-      .status-active {
-        background-color: #2ecc71;
-      }
-      .status-inactive {
-        background-color: #e74c3c;
-      }
-      .status-unknown {
-        background-color: #95a5a6;
       }
       .network-type {
         display: flex;
@@ -105,84 +76,171 @@
         margin: 20px 0;
       }
       .device-actions {
-        margin-top: 10px;
-        text-align: right;
+        display: flex;
+        gap: 10px;
       }
       .action-link {
-        margin-left: 10px;
         text-decoration: none;
-        color: #333;
+        color: #007bff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      .action-link:hover {
+        background-color: #f0f7ff;
+      }
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+      .refresh-button {
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 20px;
+      }
+      .refresh-button:hover {
+        background: #0056b3;
       }
     </style>
   </head>
   <body>
     <div class="container">
       <h1>Device List</h1>
-      {{#if error}}
-      <div class="error-message">{{error}}</div>
-      {{else}}
-      <div class="device-grid">
-        {{#each devices}}
-        <div class="device-card">
-          <div class="device-header">
-            <span class="device-address">{{address}}</span>
-            <span class="last-seen"
-              >Last seen: {{formatTimestamp lastSeen}}</span
-            >
-          </div>
-          <div class="device-info">
-            <div class="info-row">
-              <span class="info-label">Battery Level:</span>
-              <span class="battery-level">
-                {{#if isCharging}}
-                <img
-                  src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PHBhdGggZD0iTTExIDEwaDIiLz48L3N2Zz4="
-                  class="battery-icon"
-                  alt="Charging"
-                />
-                {{else}}
-                <img
-                  src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PC9zdmc+"
-                  class="battery-icon"
-                  alt="Battery"
-                />
-                {{/if}} {{batteryLevel}}%
-              </span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Network:</span>
-              <span class="network-type">
-                {{#if networkType}}
-                <img
-                  src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgMmw2IDZ2MTJhMiAyIDAgMCAxLTIgMkg4YTIgMiAwIDAgMS0yLTJWN2w2LTZ6Ii8+PHBhdGggZD0iTTEyIDZ2MTIiLz48cGF0aCBkPSJNOCAxMmg4Ii8+PC9zdmc+"
-                  class="network-icon"
-                  alt="Network"
-                />
-                {{networkType}} {{else}}
-                <span class="status-unknown">Unknown</span>
-                {{/if}}
-              </span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">SSID:</span>
-              <span>{{ssid}}</span>
-            </div>
-          </div>
-          <div class="device-actions">
-            <a href="/processor/web/{{address}}/status" class="action-link"
-              >View Status</a
-            >
-            <a href="/processor/web/{{address}}/history" class="action-link"
-              >View History</a
-            >
-            <a href="/processor/web/{{address}}/graph" class="action-link"
-              >View Graph</a
-            >
-          </div>
-        </div>
-        {{/each}}
+      <div id="content">
+        <div class="loading">Loading devices...</div>
       </div>
-      {{/if}}
     </div>
+
+    <script>
+      function formatTimestamp(timestamp) {
+        const date = new Date(Number(timestamp));
+        if (isNaN(date.getTime())) {
+          console.error('Invalid timestamp:', timestamp);
+          return 'Invalid Date';
+        }
+        return date.toLocaleString(undefined, {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        });
+      }
+
+      function showError(message) {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="error-message">${message}</div>
+        `;
+      }
+
+      function renderDevices(devices) {
+        if (!devices || devices.length === 0) {
+          showError('No devices found');
+          return;
+        }
+
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <button class="refresh-button" onclick="loadDevices()">Refresh</button>
+          <table class="device-table">
+            <thead>
+              <tr>
+                <th>Device Address</th>
+                <th>Last Seen</th>
+                <th>Battery</th>
+                <th>Network</th>
+                <th>SSID</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${devices
+                .map(
+                  (device) => `
+                <tr>
+                  <td class="device-address">${device.address}</td>
+                  <td class="last-seen">${formatTimestamp(device.lastSeen)}</td>
+                  <td>
+                    <div class="battery-level">
+                      ${
+                        device.isCharging
+                          ? `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PHBhdGggZD0iTTExIDEwaDIiLz48L3N2Zz4=" class="battery-icon" alt="Charging" />`
+                          : `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PC9zdmc+" class="battery-icon" alt="Battery" />`
+                      }
+                      <span>${device.batteryLevel}%</span>
+                      ${device.isCharging ? '<span style="color: #4CAF50; margin-left: 5px; font-weight: 500;">(Charging)</span>' : ''}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="network-type">
+                      ${
+                        device.networkType
+                          ? `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgMmw2IDZ2MTJhMiAyIDAgMCAxLTIgMkg4YTIgMiAwIDAgMS0yLTJWN2w2LTZ6Ii8+PHBhdGggZD0iTTEyIDZ2MTIiLz48cGF0aCBkPSJNOCAxMmg4Ii8+PC9zdmc+" class="network-icon" alt="Network" />
+                        ${device.networkType}`
+                          : `<span class="status-unknown">Unknown</span>`
+                      }
+                    </div>
+                  </td>
+                  <td>${device.ssid || '-'}</td>
+                  <td>
+                    <div class="device-actions">
+                      <a href="/processor/web/${device.address}/status" class="action-link">Status</a>
+                      <a href="/processor/web/${device.address}/history" class="action-link">History</a>
+                      <a href="/processor/web/${device.address}/graph" class="action-link">Graph</a>
+                    </div>
+                  </td>
+                </tr>
+              `,
+                )
+                .join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+      async function loadDevices() {
+        const content = document.getElementById('content');
+        content.innerHTML = '<div class="loading">Loading devices...</div>';
+
+        try {
+          const response = await fetch('/processor/api/devices/status');
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          console.log('Received data:', data);
+
+          const devices = data.history.reduce((acc, status) => {
+            if (!acc[status.address]) {
+              acc[status.address] = {
+                address: status.address,
+                lastSeen: status.timestamp,
+                batteryLevel: status.batteryLevel,
+                isCharging: Boolean(status.isCharging),
+                networkType: status.networkType,
+                ssid: status.ssid,
+              };
+            }
+            return acc;
+          }, {});
+
+          console.log('Transformed devices:', devices);
+          renderDevices(Object.values(devices));
+        } catch (error) {
+          console.error('Error fetching devices:', error);
+          showError(`Error loading devices: ${error.message}`);
+        }
+      }
+
+      window.onload = loadDevices;
+    </script>
   </body>
 </html>

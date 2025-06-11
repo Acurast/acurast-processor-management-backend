@@ -115,67 +115,143 @@
         border-radius: 8px;
         margin: 20px 0;
       }
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+      .refresh-button {
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 20px;
+      }
+      .refresh-button:hover {
+        background: #0056b3;
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <h1>Device History</h1>
-      {{#if error}}
-      <div class="error-message">{{error}}</div>
-      {{else}}
-      <div class="device-header">
-        <span class="device-address">{{deviceAddress}}</span>
+      <div id="content">
+        <div class="loading">Loading device history...</div>
       </div>
-      <div class="history-grid">
-        {{#each history}}
-        <div class="history-card">
-          <div class="timestamp">{{formatTimestamp timestamp}}</div>
-          <div class="info-grid">
-            <div class="info-section">
-              <div class="info-title">Battery Status</div>
-              <div class="battery-section">
-                {{#if isCharging}}
-                <img
-                  src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PHBhdGggZD0iTTExIDEwaDIiLz48L3N2Zz4="
-                  class="battery-icon"
-                  alt="Charging"
-                />
-                {{else}}
-                <img
-                  src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PC9zdmc+"
-                  class="battery-icon"
-                  alt="Battery"
-                />
-                {{/if}}
-                <span class="info-value">{{batteryLevel}}%</span>
-              </div>
-              {{#if batteryHealth}}
-              <div class="info-value">Health: {{batteryHealth}}</div>
-              {{/if}}
-            </div>
-            <div class="info-section">
-              <div class="info-title">Network</div>
-              <div class="info-value">{{networkType}}</div>
-              {{#if ssid}}
-              <div class="info-value">{{ssid}}</div>
-              {{/if}}
-            </div>
-            <div class="info-section">
-              <div class="info-title">Temperature</div>
-              <div class="temperature-grid">
-                {{#each temperature}} {{#if this}}
-                <div class="temperature-item">
-                  <span class="temperature-label">{{@key}}</span>
-                  <span class="temperature-value">{{this}}°C</span>
-                </div>
-                {{/if}} {{/each}}
-              </div>
-            </div>
-          </div>
-        </div>
-        {{/each}}
-      </div>
-      {{/if}}
     </div>
+
+    <script>
+      let deviceAddress = '';
+
+      function formatTimestamp(timestamp) {
+        return new Date(timestamp * 1000).toLocaleString();
+      }
+
+      function showError(message) {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="error-message">${message}</div>
+        `;
+      }
+
+      function renderHistory(history) {
+        if (!history || history.length === 0) {
+          showError('No history data available');
+          return;
+        }
+
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="device-header">
+            <span class="device-address">${deviceAddress}</span>
+            <button class="refresh-button" onclick="loadHistory()">Refresh</button>
+          </div>
+          <div class="history-grid">
+            ${history
+              .map(
+                (entry) => `
+              <div class="history-card">
+                <div class="timestamp">${formatTimestamp(entry.timestamp)}</div>
+                <div class="info-grid">
+                  <div class="info-section">
+                    <div class="info-title">Battery Status</div>
+                    <div class="battery-section">
+                      ${
+                        entry.isCharging
+                          ? `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PHBhdGggZD0iTTExIDEwaDIiLz48L3N2Zz4=" class="battery-icon" alt="Charging" />`
+                          : `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PC9zdmc+" class="battery-icon" alt="Battery" />`
+                      }
+                      <span class="info-value">${entry.batteryLevel}%</span>
+                    </div>
+                    ${entry.batteryHealth ? `<div class="info-value">Health: ${entry.batteryHealth}</div>` : ''}
+                  </div>
+                  <div class="info-section">
+                    <div class="info-title">Network</div>
+                    <div class="info-value">${entry.networkType}</div>
+                    ${entry.ssid ? `<div class="info-value">${entry.ssid}</div>` : ''}
+                  </div>
+                  <div class="info-section">
+                    <div class="info-title">Temperature</div>
+                    <div class="temperature-grid">
+                      ${Object.entries(entry.temperature || {})
+                        .map(([key, value]) =>
+                          value
+                            ? `
+                          <div class="temperature-item">
+                            <span class="temperature-label">${key}</span>
+                            <span class="temperature-value">${value}°C</span>
+                          </div>
+                        `
+                            : '',
+                        )
+                        .join('')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `,
+              )
+              .join('')}
+          </div>
+        `;
+      }
+
+      async function loadHistory() {
+        const content = document.getElementById('content');
+        content.innerHTML =
+          '<div class="loading">Loading device history...</div>';
+
+        try {
+          const response = await fetch(
+            `/processor/api/devices/${deviceAddress}/history`,
+          );
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          renderHistory(data.history);
+        } catch (error) {
+          console.error('Error fetching history:', error);
+          showError(`Error loading device history: ${error.message}`);
+        }
+      }
+
+      function init() {
+        // Get device address from URL
+        const pathParts = window.location.pathname.split('/');
+        deviceAddress = pathParts[pathParts.length - 2];
+
+        if (!deviceAddress) {
+          showError('No device address provided');
+          return;
+        }
+
+        loadHistory();
+      }
+
+      window.onload = init;
+    </script>
   </body>
 </html>
