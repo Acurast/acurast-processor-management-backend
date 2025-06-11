@@ -454,4 +454,61 @@ export class ProcessorController {
       res.send(html);
     }
   }
+
+  @Get('debug/cache/status')
+  @ApiOperation({ summary: 'Get cache status information' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cache status information',
+  })
+  async getCacheStatus() {
+    return {
+      processorCache: {
+        size: this.processorService.cacheService.getProcessorCacheSize(),
+        capacity:
+          this.processorService.cacheService.getProcessorCacheCapacity(),
+      },
+      deviceStatusCache: {
+        size: this.processorService.cacheService.getDeviceStatusCacheSize(),
+        capacity:
+          this.processorService.cacheService.getDeviceStatusCacheCapacity(),
+      },
+      networkTypeCache: {
+        size: this.processorService.cacheService.getNetworkTypeCacheSize(),
+        capacity:
+          this.processorService.cacheService.getNetworkTypeCacheCapacity(),
+      },
+      batteryHealthCache: {
+        size: this.processorService.cacheService.getBatteryHealthCacheSize(),
+        capacity:
+          this.processorService.cacheService.getBatteryHealthCacheCapacity(),
+      },
+    };
+  }
+
+  @Get('debug/cache/contents')
+  @ApiOperation({ summary: 'Get cache contents' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cache contents',
+  })
+  async getCacheContents() {
+    return {
+      processorCache: Array.from(
+        this.processorService.cacheService['processorCache'].entries(),
+      ),
+      deviceStatusCache: Array.from(
+        this.processorService.cacheService['deviceStatusCache'].entries(),
+      ),
+      networkTypeCache: Array.from(
+        this.processorService.cacheService['networkTypeCache'].entries(),
+      ),
+      batteryHealthCache: Array.from(
+        this.processorService.cacheService['batteryHealthCache'].entries(),
+      ),
+      ssidCache: Array.from(
+        this.processorService.cacheService['ssidCache'].entries(),
+      ),
+    };
+  }
 }

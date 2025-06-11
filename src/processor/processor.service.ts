@@ -53,7 +53,7 @@ export class ProcessorService {
     @InjectRepository(TemperatureReading)
     private temperatureReadingRepository: Repository<TemperatureReading>,
     private dataSource: DataSource,
-    private cacheService: CacheService,
+    public cacheService: CacheService,
     private signatureService: SignatureService,
   ) {
     // Initialize batch processing
