@@ -169,13 +169,11 @@ export class SignatureService {
     );
     finalMessage.set(new Uint8Array(authenticatorData));
     finalMessage.set(hashedPayload, authenticatorData.length);
-    console.log('Final message:', Buffer.from(finalMessage).toString('hex'));
 
     // Hash the final message
     const hashedFinalMessage = createHash('sha256')
       .update(finalMessage)
       .digest('hex');
-    console.log('Hashed final message:', hashedFinalMessage);
 
     // Hash it again
     const doubleHash = createHash('sha256')
