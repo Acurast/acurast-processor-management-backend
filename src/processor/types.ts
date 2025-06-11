@@ -54,3 +54,7 @@ export interface DeviceListItem {
 export interface ListResponse {
   devices: DeviceListItem[];
 }
+
+export interface BulkStatusResponse {
+  deviceStatuses: DeviceStatus[];
+}

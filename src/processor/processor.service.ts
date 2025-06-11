@@ -18,6 +18,7 @@ import {
   HistoryResponse,
   ListResponse,
   DeviceListItem,
+  BulkStatusResponse,
 } from './types';
 import { DeviceStatusDto } from './dto/device-status.dto';
 import { DeviceStatus } from './entities/device-status.entity';
@@ -422,5 +423,63 @@ export class ProcessorService {
     });
 
     return { devices };
+  }
+
+  async getBulkDeviceStatus(addresses: string[]): Promise<BulkStatusResponse> {
+    // Remove duplicates and empty addresses
+    const uniqueAddresses = [...new Set(addresses)].filter(Boolean);
+
+    if (uniqueAddresses.length === 0) {
+      return { deviceStatuses: [] };
+    }
+
+    // Get statuses from cache first
+    const cachedStatuses = uniqueAddresses
+      .map((address) => this.cacheService.getDeviceStatus(address))
+      .filter((status): status is DeviceStatus => status !== undefined);
+
+    // Find addresses that weren't in cache
+    const uncachedAddresses = uniqueAddresses.filter(
+      (address) => !this.cacheService.getDeviceStatus(address),
+    );
+
+    let uncachedStatuses: DeviceStatus[] = [];
+    if (uncachedAddresses.length > 0) {
+      // Query database for uncached statuses - only get latest status for each device
+      uncachedStatuses = await this.deviceStatusRepository
+        .createQueryBuilder('status')
+        .innerJoinAndSelect('status.processor', 'processor')
+        .leftJoinAndSelect('status.networkType', 'networkType')
+        .leftJoinAndSelect('status.ssid', 'ssid')
+        .leftJoinAndSelect('status.batteryHealth', 'batteryHealth')
+        .leftJoinAndSelect('status.temperatureReadings', 'temperatureReadings')
+        .where('processor.address IN (:...addresses)', {
+          addresses: uncachedAddresses,
+        })
+        .andWhere((qb) => {
+          const subQuery = qb
+            .subQuery()
+            .select('MAX(s2.timestamp)')
+            .from(DeviceStatus, 's2')
+            .innerJoin('s2.processor', 'p2')
+            .where('p2.address = processor.address')
+            .getQuery();
+          return 'status.timestamp = ' + subQuery;
+        })
+        .getMany();
+
+      // Update cache with new statuses
+      uncachedStatuses.forEach((status) => {
+        this.cacheService.setDeviceStatus(status.processor.address, status);
+      });
+    }
+
+    // Combine cached and uncached statuses
+    const allStatuses = [...cachedStatuses, ...uncachedStatuses];
+
+    // Transform to DTOs
+    return {
+      deviceStatuses: allStatuses.map((status) => this.transformToDto(status)),
+    };
   }
 }

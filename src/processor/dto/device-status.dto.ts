@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { NetworkTypeEnum, BatteryHealthState } from '../enums';
-import { TemperatureReadings, DeviceStatus } from '../types';
+import {
+  TemperatureReadings,
+  DeviceStatus,
+  BulkStatusResponse,
+} from '../types';
 
 export class TemperatureReadingsDto implements TemperatureReadings {
   @ApiProperty({
@@ -61,3 +65,11 @@ export class DeviceStatusDto implements DeviceStatus {
 export type TemperatureType = keyof NonNullable<
   DeviceStatusDto['temperatures']
 >;
+
+export class BulkStatusResponseDto implements BulkStatusResponse {
+  @ApiProperty({
+    description: 'Device status information for multiple devices',
+    type: [DeviceStatusDto],
+  })
+  deviceStatuses: DeviceStatusDto[];
+}

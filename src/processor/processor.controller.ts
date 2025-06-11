@@ -16,6 +16,7 @@ import { ProcessorService } from './processor.service';
 import {
   DeviceStatusDto,
   TemperatureReadingsDto,
+  BulkStatusResponseDto,
 } from './dto/device-status.dto';
 import { Response } from 'express';
 import {
@@ -35,6 +36,7 @@ import {
   HistoryResponse,
   DeviceListItem,
   ListResponse,
+  BulkStatusResponse,
 } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -343,6 +345,25 @@ export class ProcessorController {
   async getAllDeviceStatusesApi(): Promise<HistoryResponseDto> {
     const response = await this.processorService.getAllDeviceStatuses();
     return response as HistoryResponseDto;
+  }
+
+  @Get('api/devices/status/bulk')
+  @ApiOperation({ summary: 'Get status for multiple devices' })
+  @ApiQuery({
+    name: 'addresses',
+    description: 'Comma-separated list of device addresses',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device statuses retrieved successfully',
+    type: BulkStatusResponseDto,
+  })
+  async getBulkDeviceStatusApi(
+    @Query('addresses') addresses: string,
+  ): Promise<BulkStatusResponse> {
+    const addressList = addresses.split(',').map((addr) => addr.trim());
+    return this.processorService.getBulkDeviceStatus(addressList);
   }
 
   @Get('web/list')
