@@ -69,7 +69,11 @@ export type TemperatureType = keyof NonNullable<
 export class BulkStatusResponseDto implements BulkStatusResponse {
   @ApiProperty({
     description: 'Device status information for multiple devices',
-    type: [DeviceStatusDto],
+    type: 'object',
+    additionalProperties: {
+      type: 'object',
+      $ref: '#/components/schemas/DeviceStatusDto',
+    },
   })
-  deviceStatuses: DeviceStatusDto[];
+  deviceStatuses: Record<string, DeviceStatusDto>;
 }

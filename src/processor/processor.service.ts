@@ -453,7 +453,7 @@ export class ProcessorService {
     const uniqueAddresses = [...new Set(addresses)].filter(Boolean);
 
     if (uniqueAddresses.length === 0) {
-      return { deviceStatuses: [] };
+      return { deviceStatuses: {} };
     }
 
     // Get statuses from cache first
@@ -500,9 +500,12 @@ export class ProcessorService {
     // Combine cached and uncached statuses
     const allStatuses = [...cachedStatuses, ...uncachedStatuses];
 
-    // Transform to DTOs
-    return {
-      deviceStatuses: allStatuses.map((status) => this.transformToDto(status)),
-    };
+    // Transform to DTOs and create a Record
+    const statusMap: Record<string, DeviceStatusDto> = {};
+    allStatuses.forEach((status) => {
+      statusMap[status.processor.address] = this.transformToDto(status);
+    });
+
+    return { deviceStatuses: statusMap };
   }
 }

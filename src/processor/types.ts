@@ -56,5 +56,5 @@ export interface ListResponse {
 }
 
 export interface BulkStatusResponse {
-  deviceStatuses: DeviceStatus[];
+  deviceStatuses: Record<string, DeviceStatus>;
 }
