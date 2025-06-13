@@ -5,12 +5,8 @@ services:
     image: acurast-processor-management-backend:latest
     ports:
       - 8002:9001
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: postgres
+    env_file:
+      - .env
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -18,12 +14,8 @@ services:
   migrations:
     image: acurast-processor-management-backend:latest
     command: npm run typeorm:run-migrations
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: postgres
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
