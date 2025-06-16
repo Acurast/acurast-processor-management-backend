@@ -27,6 +27,8 @@ The API is documented using Swagger/OpenAPI specification. You can access the in
 
 ### Web Interface
 
+- **GET** `/` - Overview
+- **GET** `/api` - API Documentation
 - **GET** `/processor/web/list` - Device list view
 - **GET** `/processor/web/:address/status` - Device status view
 - **GET** `/processor/web/:address/history` - Device history view
@@ -52,6 +54,20 @@ The API is documented using Swagger/OpenAPI specification. You can access the in
   - Response Codes:
     - 200: Device history retrieved successfully
     - 404: Device not found
+
+#### Bulk Device Status
+
+- **GET** `/processor/api/devices/status/bulk`
+  - Parameters:
+    - `addresses`: Comma-separated list of device addresses (query parameter)
+  - Returns: `{ deviceStatuses: Record<string, DeviceStatus> }`
+  - Response Codes:
+    - 200: Device statuses retrieved successfully
+
+```bash
+# Example
+/processor/api/devices/status/bulk?addresses=addr1,addr2,addr3
+```
 
 #### Device Check-in (done by processor)
 
