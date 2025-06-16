@@ -315,7 +315,7 @@ export class ProcessorController {
   @ApiQuery({
     name: 'limit',
     required: false,
-    description: 'Number of history entries to return',
+    description: 'Number of history entries to return (default: 100)',
     type: Number,
   })
   @ApiResponse({
@@ -326,7 +326,7 @@ export class ProcessorController {
   @ApiResponse({ status: 404, description: 'Device not found' })
   async getDeviceHistoryApi(
     @Param('address') address: string,
-    @Query('limit') limit: number = 10,
+    @Query('limit') limit: number = 100,
   ): Promise<HistoryResponseDto> {
     const response = await this.processorService.getDeviceHistory(
       address,
@@ -410,7 +410,7 @@ export class ProcessorController {
   @Get('web/:address/history')
   async getDeviceHistory(
     @Param('address') address: string,
-    @Query('limit') limit: string = '60',
+    @Query('limit') limit: string = '100',
     @Res() res: Response,
   ): Promise<void> {
     try {

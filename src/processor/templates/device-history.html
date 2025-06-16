@@ -9,7 +9,7 @@
         background-color: #f5f5f5;
       }
       .container {
-        max-width: 1200px;
+        max-width: 95%;
         margin: 0 auto;
         background-color: white;
         padding: 20px;
@@ -33,46 +33,30 @@
         color: #2c3e50;
         font-size: 1.2em;
       }
-      .history-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 20px;
+      .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
       }
-      .history-card {
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 15px;
-        transition: transform 0.2s;
+      .history-table th {
+        background-color: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #2c3e50;
+        border-bottom: 2px solid #dee2e6;
       }
-      .history-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      .history-table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+        vertical-align: middle;
+      }
+      .history-table tr:hover {
+        background-color: #f8f9fa;
       }
       .timestamp {
         color: #666;
         font-size: 0.9em;
-        margin-bottom: 10px;
-      }
-      .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 10px;
-      }
-      .info-section {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 6px;
-      }
-      .info-title {
-        font-weight: 500;
-        color: #2c3e50;
-        margin-bottom: 5px;
-        font-size: 0.9em;
-      }
-      .info-value {
-        color: #555;
-        font-size: 1em;
       }
       .battery-section {
         display: flex;
@@ -80,6 +64,15 @@
         gap: 5px;
       }
       .battery-icon {
+        width: 20px;
+        height: 20px;
+      }
+      .network-type {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .network-icon {
         width: 16px;
         height: 16px;
       }
@@ -132,10 +125,20 @@
       .refresh-button:hover {
         background: #0056b3;
       }
+      .back-link {
+        display: inline-block;
+        margin-bottom: 1rem;
+        color: #007bff;
+        text-decoration: none;
+      }
+      .back-link:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
     <div class="container">
+      <a href="/processor/web/list" class="back-link">← Back to Device List</a>
       <h1>Device History</h1>
       <div id="content">
         <div class="loading">Loading device history...</div>
@@ -146,7 +149,33 @@
       let deviceAddress = '';
 
       function formatTimestamp(timestamp) {
-        return new Date(timestamp * 1000).toLocaleString();
+        const date = new Date(Number(timestamp));
+        if (isNaN(date.getTime())) {
+          console.error('Invalid timestamp:', timestamp);
+          return 'Invalid Date';
+        }
+        return date.toLocaleString(undefined, {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        });
+      }
+
+      function formatRelativeTime(currentTimestamp, previousTimestamp) {
+        if (!previousTimestamp) return '';
+        const diff = Math.floor((previousTimestamp - currentTimestamp) / 1000);
+        const minutes = Math.floor(diff / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 0) return `(${days}d diff)`;
+        if (hours > 0) return `(${hours}h diff)`;
+        if (minutes > 0) return `(${minutes}m diff)`;
+        return `(${diff}s diff)`;
       }
 
       function showError(message) {
@@ -162,38 +191,57 @@
           return;
         }
 
+        console.log('History data:', history);
+
         const content = document.getElementById('content');
         content.innerHTML = `
           <div class="device-header">
             <span class="device-address">${deviceAddress}</span>
             <button class="refresh-button" onclick="loadHistory()">Refresh</button>
           </div>
-          <div class="history-grid">
-            ${history
-              .map(
-                (entry) => `
-              <div class="history-card">
-                <div class="timestamp">${formatTimestamp(entry.timestamp)}</div>
-                <div class="info-grid">
-                  <div class="info-section">
-                    <div class="info-title">Battery Status</div>
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Battery</th>
+                <th>Network</th>
+                <th>SSID</th>
+                <th>Temperatures</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${history
+                .map(
+                  (entry, index) => `
+                <tr>
+                  <td class="timestamp">
+                    ${formatTimestamp(entry.timestamp)}
+                    ${formatRelativeTime(entry.timestamp, index > 0 ? history[index - 1].timestamp : null)}
+                  </td>
+                  <td>
                     <div class="battery-section">
                       ${
                         entry.isCharging
                           ? `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PHBhdGggZD0iTTExIDEwaDIiLz48L3N2Zz4=" class="battery-icon" alt="Charging" />`
                           : `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjEgMTBoLTJhMiAyIDAgMCAwLTIgMnY2YTIgMiAwIDAgMCAyIDJoMWEyIDIgMCAwIDAgMi0ydi0yIi8+PHBhdGggZD0iTTExIDZWNmEyIDIgMCAwIDEtMi0yVjJhMiAyIDAgMCAxIDItMmg2YTIgMiAwIDAgMSAyIDJ2MmEyIDIgMCAwIDEtMiAydjBhMiAyIDAgMCAxLTIgMkgxM2EyIDIgMCAwIDEtMi0yeiIvPjxwYXRoIGQ9Ik0xMSAxMHY0YTIgMiAwIDAgMCAyIDJoMmEyIDIgMCAwIDAgMi0ydi00Ii8+PC9zdmc+" class="battery-icon" alt="Battery" />`
                       }
-                      <span class="info-value">${entry.batteryLevel}%</span>
+                      <span>${entry.batteryLevel}%</span>
+                      ${entry.isCharging ? '<span style="color: #4CAF50; margin-left: 5px; font-weight: 500;">(Charging)</span>' : ''}
+                      ${entry.batteryHealth ? `<span style="margin-left: 5px;">Health: ${entry.batteryHealth}</span>` : ''}
                     </div>
-                    ${entry.batteryHealth ? `<div class="info-value">Health: ${entry.batteryHealth}</div>` : ''}
-                  </div>
-                  <div class="info-section">
-                    <div class="info-title">Network</div>
-                    <div class="info-value">${entry.networkType}</div>
-                    ${entry.ssid ? `<div class="info-value">${entry.ssid}</div>` : ''}
-                  </div>
-                  <div class="info-section">
-                    <div class="info-title">Temperature</div>
+                  </td>
+                  <td>
+                    <div class="network-type">
+                      ${
+                        entry.networkType
+                          ? `<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2Y2JjM2QiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTIgMmw2IDZ2MTJhMiAyIDAgMCAxLTIgMkg4YTIgMiAwIDAgMS0yLTJWN2w2LTZ6Ii8+PHBhdGggZD0iTTEyIDZ2MTIiLz48cGF0aCBkPSJNOCAxMmg4Ii8+PC9zdmc+" class="network-icon" alt="Network" />
+                        ${entry.networkType}`
+                          : `<span class="status-unknown">Unknown</span>`
+                      }
+                    </div>
+                  </td>
+                  <td>${entry.ssid || '-'}</td>
+                  <td>
                     <div class="temperature-grid">
                       ${Object.entries(entry.temperature || {})
                         .map(([key, value]) =>
@@ -208,13 +256,13 @@
                         )
                         .join('')}
                     </div>
-                  </div>
-                </div>
-              </div>
-            `,
-              )
-              .join('')}
-          </div>
+                  </td>
+                </tr>
+              `,
+                )
+                .join('')}
+            </tbody>
+          </table>
         `;
       }
 
