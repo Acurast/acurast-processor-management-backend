@@ -175,33 +175,6 @@ export class AppController {
             </div>
           </div>
           
-          <h2>Available Endpoints</h2>
-          
-          <div class="endpoint">
-            <span class="method">POST</span> <code>/processor/check-in</code>
-            <p>Register a new device check-in with status information.</p>
-          </div>
-          
-          <div class="endpoint">
-            <span class="method">GET</span> <code>/processor/list</code>
-            <p>View a list of all devices with their latest status.</p>
-          </div>
-          
-          <div class="endpoint">
-            <span class="method">GET</span> <code>/processor/devices/:deviceAddress/status</code>
-            <p>Get the current status of a specific device.</p>
-          </div>
-          
-          <div class="endpoint">
-            <span class="method">GET</span> <code>/processor/devices/:deviceAddress/history</code>
-            <p>Get the history of status updates for a specific device.</p>
-          </div>
-          
-          <div class="endpoint">
-            <span class="method">GET</span> <code>/processor/devices/status</code>
-            <p>Get all device statuses across all devices.</p>
-          </div>
-
           <div class="last-updated">
             Last updated: ${new Date(stats.timestamp).toLocaleString()}
           </div>
