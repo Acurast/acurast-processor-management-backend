@@ -136,7 +136,7 @@ export class AppController {
               <div class="stat-label">Total Check-ins</div>
             </div>
             <div class="stat-card">
-              <div class="stat-value">${stats.totalDevices}</div>
+              <div class="stat-value">${stats.totalProcessors}</div>
               <div class="stat-label">Total Devices</div>
             </div>
             <div class="stat-card">
@@ -154,7 +154,7 @@ export class AppController {
             <div class="cache-grid">
               <div class="cache-item">
                 <h3>Device Status Cache</h3>
-                <p>Size: ${this.cacheService.getDeviceStatusCacheSize()} / ${this.cacheService.getDeviceStatusCacheCapacity()}</p>
+                <p>Size: ${this.cacheService.getProcessorStatusCacheSize()} / ${this.cacheService.getProcessorStatusCacheCapacity()}</p>
               </div>
               <div class="cache-item">
                 <h3>Processor Cache</h3>

@@ -71,7 +71,7 @@ export class CacheService {
   private readonly NORMAL_CACHE_SIZE = 5000;
 
   private processorCache: CacheWrapper<Processor>;
-  private deviceStatusCache: CacheWrapper<DeviceStatus>;
+  private processorStatusCache: CacheWrapper<DeviceStatus>;
   private networkTypeCache: CacheWrapper<NetworkType>;
   private batteryHealthCache: CacheWrapper<BatteryHealth>;
   private ssidCache: CacheWrapper<Ssid>;
@@ -83,8 +83,8 @@ export class CacheService {
       (processor) => processor.address,
     );
 
-    this.deviceStatusCache = new CacheWrapper(
-      'DeviceStatus',
+    this.processorStatusCache = new CacheWrapper(
+      'ProcessorStatus',
       new LRUCache<string, DeviceStatus>(this.STATUS_CACHE_SIZE),
       (status) => status.processor.address,
     );
@@ -109,8 +109,8 @@ export class CacheService {
   }
 
   // Cache size getters
-  getDeviceStatusCacheSize(): number {
-    return this.deviceStatusCache.size;
+  getProcessorStatusCacheSize(): number {
+    return this.processorStatusCache.size;
   }
 
   getProcessorCacheSize(): number {
@@ -130,8 +130,8 @@ export class CacheService {
   }
 
   // Cache capacity getters
-  getDeviceStatusCacheCapacity(): number {
-    return this.deviceStatusCache.capacity;
+  getProcessorStatusCacheCapacity(): number {
+    return this.processorStatusCache.capacity;
   }
 
   getProcessorCacheCapacity(): number {
@@ -159,33 +159,33 @@ export class CacheService {
     this.processorCache.set(processor);
   }
 
-  // DeviceStatus cache methods
-  getDeviceStatus(address: string): DeviceStatus | undefined {
-    return this.deviceStatusCache.get(address);
+  // ProcessorStatus cache methods
+  getProcessorStatus(address: string): DeviceStatus | undefined {
+    return this.processorStatusCache.get(address);
   }
 
-  setDeviceStatus(status: DeviceStatus): void {
-    const existingStatus = this.getDeviceStatus(status.processor.address);
+  setProcessorStatus(status: DeviceStatus): void {
+    const existingStatus = this.getProcessorStatus(status.processor.address);
     if (!existingStatus || status.timestamp > existingStatus.timestamp) {
-      this.deviceStatusCache.set(status);
+      this.processorStatusCache.set(status);
     }
   }
 
-  hasDeviceStatus(address: string): boolean {
-    return this.deviceStatusCache.has(address);
+  hasProcessorStatus(address: string): boolean {
+    return this.processorStatusCache.has(address);
   }
 
   // Helper method to check if device status exists and is newer than the given timestamp
-  hasNewerDeviceStatus(address: string, timestamp: number): boolean {
-    const existingStatus = this.getDeviceStatus(address);
+  hasNewerProcessorStatus(address: string, timestamp: number): boolean {
+    const existingStatus = this.getProcessorStatus(address);
     return (
       existingStatus !== undefined && existingStatus.timestamp >= timestamp
     );
   }
 
   // Helper method to get latest device status by address
-  getLatestDeviceStatus(address: string): DeviceStatus | undefined {
-    return this.getDeviceStatus(address);
+  getLatestProcessorStatus(address: string): DeviceStatus | undefined {
+    return this.getProcessorStatus(address);
   }
 
   // NetworkType cache methods
@@ -217,7 +217,9 @@ export class CacheService {
 
   printCacheSizes(): void {
     console.log(`Processor cache size: \t${this.processorCache.size}`);
-    console.log(`DeviceStatus cache size: \t${this.deviceStatusCache.size}`);
+    console.log(
+      `ProcessorStatus cache size: \t${this.processorStatusCache.size}`,
+    );
     console.log(`NetworkType cache size: \t${this.networkTypeCache.size}`);
     console.log(`BatteryHealth cache size: \t${this.batteryHealthCache.size}`);
     console.log(`Ssid cache size: \t\t${this.ssidCache.size}`);
@@ -228,8 +230,8 @@ export class CacheService {
     return this.processorCache.toObject();
   }
 
-  getDeviceStatusCacheContents(): Record<string, DeviceStatus> {
-    return this.deviceStatusCache.toObject();
+  getProcessorStatusCacheContents(): Record<string, DeviceStatus> {
+    return this.processorStatusCache.toObject();
   }
 
   getNetworkTypeCacheContents(): Record<string, NetworkType> {

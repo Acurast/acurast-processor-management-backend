@@ -6,7 +6,7 @@ import { Processor } from './processor/entities/processor.entity';
 
 interface StatsCache {
   totalCheckIns: number;
-  totalDevices: number;
+  totalProcessors: number;
   lastHourCheckIns: number;
   last24HoursCheckIns: number;
   timestamp: number;
@@ -33,26 +33,30 @@ export class AppService {
     }
 
     // Calculate new stats
-    const [totalCheckIns, totalDevices, lastHourCheckIns, last24HoursCheckIns] =
-      await Promise.all([
-        this.deviceStatusRepository.count(),
-        this.processorRepository.count(),
-        this.deviceStatusRepository.count({
-          where: {
-            timestamp: MoreThan(now - 60 * 60 * 1000), // Last hour
-          },
-        }),
-        this.deviceStatusRepository.count({
-          where: {
-            timestamp: MoreThan(now - 24 * 60 * 60 * 1000), // Last 24 hours
-          },
-        }),
-      ]);
+    const [
+      totalCheckIns,
+      totalProcessors,
+      lastHourCheckIns,
+      last24HoursCheckIns,
+    ] = await Promise.all([
+      this.deviceStatusRepository.count(),
+      this.processorRepository.count(),
+      this.deviceStatusRepository.count({
+        where: {
+          timestamp: MoreThan(now - 60 * 60 * 1000), // Last hour
+        },
+      }),
+      this.deviceStatusRepository.count({
+        where: {
+          timestamp: MoreThan(now - 24 * 60 * 60 * 1000), // Last 24 hours
+        },
+      }),
+    ]);
 
     // Update cache
     this.statsCache = {
       totalCheckIns,
-      totalDevices,
+      totalProcessors,
       lastHourCheckIns,
       last24HoursCheckIns,
       timestamp: now,

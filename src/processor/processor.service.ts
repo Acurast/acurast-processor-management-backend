@@ -17,10 +17,11 @@ import {
   StatusResponse,
   HistoryResponse,
   ListResponse,
-  DeviceListItem,
+  ProcessorListItem,
   BulkStatusResponse,
+  type StatusesResponse,
 } from './types';
-import { DeviceStatusDto } from './dto/device-status.dto';
+import { ProcessorStatusDto } from './dto/device-status.dto';
 import { DeviceStatus } from './entities/device-status.entity';
 import { Processor } from './entities/processor.entity';
 import { NetworkType } from './entities/network-type.entity';
@@ -41,7 +42,7 @@ export class ProcessorService {
 
   constructor(
     @InjectRepository(DeviceStatus)
-    private deviceStatusRepository: Repository<DeviceStatus>,
+    private processorStatusRepository: Repository<DeviceStatus>,
     @InjectRepository(Processor)
     private processorRepository: Repository<Processor>,
     @InjectRepository(NetworkType)
@@ -164,8 +165,8 @@ export class ProcessorService {
     return batteryHealth;
   }
 
-  private transformToDto(deviceStatus: DeviceStatus): DeviceStatusDto {
-    const temperatures: DeviceStatusDto['temperatures'] = {
+  private transformToDto(deviceStatus: DeviceStatus): ProcessorStatusDto {
+    const temperatures: ProcessorStatusDto['temperatures'] = {
       battery: undefined,
       ambient: undefined,
       forecast: undefined,
@@ -256,7 +257,7 @@ export class ProcessorService {
       try {
         // Check for duplicate in cache first
         if (
-          this.cacheService.hasNewerDeviceStatus(address, checkIn.timestamp)
+          this.cacheService.hasNewerProcessorStatus(address, checkIn.timestamp)
         ) {
           console.warn(
             'Duplicate or newer report detected in cache',
@@ -321,7 +322,7 @@ export class ProcessorService {
 
         // Update cache with the complete device status
         if (completeDeviceStatus) {
-          this.cacheService.setDeviceStatus(completeDeviceStatus);
+          this.cacheService.setProcessorStatus(completeDeviceStatus);
         }
       } catch (error) {
         // Handle unique constraint error for duplicate reports (fallback)
@@ -345,17 +346,17 @@ export class ProcessorService {
     }
   }
 
-  async getDeviceStatus(deviceAddress: string): Promise<StatusResponse> {
+  async getProcessorStatus(processorAddress: string): Promise<StatusResponse> {
     // Check cache first
-    const cached = this.cacheService.getLatestDeviceStatus(deviceAddress);
+    const cached = this.cacheService.getLatestProcessorStatus(processorAddress);
     if (cached) {
-      return { deviceStatus: this.transformToDto(cached) };
+      return { processorStatus: this.transformToDto(cached) };
     }
 
-    const latestStatus = await this.deviceStatusRepository
+    const latestStatus = await this.processorStatusRepository
       .createQueryBuilder('status')
       .innerJoinAndSelect('status.processor', 'processor')
-      .where('processor.address = :address', { address: deviceAddress })
+      .where('processor.address = :address', { address: processorAddress })
       .leftJoinAndSelect('status.networkType', 'networkType')
       .leftJoinAndSelect('status.ssid', 'ssid')
       .leftJoinAndSelect('status.batteryHealth', 'batteryHealth')
@@ -369,18 +370,18 @@ export class ProcessorService {
     }
 
     // Update cache
-    this.cacheService.setDeviceStatus(latestStatus);
+    this.cacheService.setProcessorStatus(latestStatus);
 
-    return { deviceStatus: this.transformToDto(latestStatus) };
+    return { processorStatus: this.transformToDto(latestStatus) };
   }
 
   async getDeviceHistory(
-    deviceAddress: string,
+    processorAddress: string,
     limit: number,
   ): Promise<HistoryResponse> {
     // Get from database since we only cache the latest status
-    const history = await this.deviceStatusRepository.find({
-      where: { processor: { address: deviceAddress } },
+    const history = await this.processorStatusRepository.find({
+      where: { processor: { address: processorAddress } },
       order: { timestamp: 'DESC' },
       take: limit,
       relations: [
@@ -398,7 +399,7 @@ export class ProcessorService {
 
     // Update cache with the latest status
     if (history.length > 0) {
-      this.cacheService.setDeviceStatus(history[0]);
+      this.cacheService.setProcessorStatus(history[0]);
     }
 
     return {
@@ -406,8 +407,8 @@ export class ProcessorService {
     };
   }
 
-  async getAllLatestDeviceStatuses(): Promise<HistoryResponse> {
-    const history = await this.deviceStatusRepository
+  async getAllLatestProcessorStatuses(): Promise<StatusesResponse> {
+    const processorStatuses = await this.processorStatusRepository
       .createQueryBuilder('status')
       .innerJoinAndSelect('status.processor', 'processor')
       .leftJoinAndSelect('status.networkType', 'networkType')
@@ -428,11 +429,13 @@ export class ProcessorService {
       .getMany();
 
     return {
-      history: history.map((status) => this.transformToDto(status)),
+      processorStatuses: processorStatuses.map((status) =>
+        this.transformToDto(status),
+      ),
     };
   }
 
-  async getDeviceList(): Promise<ListResponse> {
+  async getProcessorList(): Promise<ListResponse> {
     // Get all processors with their latest status
     const processors = await this.processorRepository
       .createQueryBuilder('processor')
@@ -441,7 +444,7 @@ export class ProcessorService {
       .getMany();
 
     // Transform the data to include only the latest status for each processor
-    const devices: DeviceListItem[] = processors.map((processor) => {
+    const devices: ProcessorListItem[] = processors.map((processor) => {
       const latestStatus = processor.statuses[0];
       return {
         address: processor.address,
@@ -457,28 +460,30 @@ export class ProcessorService {
     return { devices };
   }
 
-  async getBulkDeviceStatus(addresses: string[]): Promise<BulkStatusResponse> {
+  async getBulkProcessorStatus(
+    addresses: string[],
+  ): Promise<BulkStatusResponse> {
     // Remove duplicates and empty addresses
     const uniqueAddresses = [...new Set(addresses)].filter(Boolean);
 
     if (uniqueAddresses.length === 0) {
-      return { deviceStatuses: {} };
+      return { processorStatuses: {} };
     }
 
     // Get statuses from cache first
     const cachedStatuses = uniqueAddresses
-      .map((address) => this.cacheService.getDeviceStatus(address))
+      .map((address) => this.cacheService.getProcessorStatus(address))
       .filter((status): status is DeviceStatus => status !== undefined);
 
     // Find addresses that weren't in cache
     const uncachedAddresses = uniqueAddresses.filter(
-      (address) => !this.cacheService.getDeviceStatus(address),
+      (address) => !this.cacheService.getProcessorStatus(address),
     );
 
     let uncachedStatuses: DeviceStatus[] = [];
     if (uncachedAddresses.length > 0) {
       // Query database for uncached statuses - only get latest status for each device
-      uncachedStatuses = await this.deviceStatusRepository
+      uncachedStatuses = await this.processorStatusRepository
         .createQueryBuilder('status')
         .innerJoinAndSelect('status.processor', 'processor')
         .leftJoinAndSelect('status.networkType', 'networkType')
@@ -502,7 +507,7 @@ export class ProcessorService {
 
       // Update cache with new statuses
       uncachedStatuses.forEach((status) => {
-        this.cacheService.setDeviceStatus(status);
+        this.cacheService.setProcessorStatus(status);
       });
     }
 
@@ -510,11 +515,11 @@ export class ProcessorService {
     const allStatuses = [...cachedStatuses, ...uncachedStatuses];
 
     // Transform to DTOs and create a Record
-    const statusMap: Record<string, DeviceStatusDto> = {};
+    const statusMap: Record<string, ProcessorStatusDto> = {};
     allStatuses.forEach((status) => {
       statusMap[status.processor.address] = this.transformToDto(status);
     });
 
-    return { deviceStatuses: statusMap };
+    return { processorStatuses: statusMap };
   }
 }

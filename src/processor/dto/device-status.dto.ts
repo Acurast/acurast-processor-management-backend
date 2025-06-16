@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { NetworkTypeEnum, BatteryHealthState } from '../enums';
 import {
   TemperatureReadings,
-  DeviceStatus,
+  ProcessorStatus,
   BulkStatusResponse,
 } from '../types';
 
@@ -26,8 +26,8 @@ export class TemperatureReadingsDto implements TemperatureReadings {
   forecast?: number;
 }
 
-export class DeviceStatusDto implements DeviceStatus {
-  @ApiProperty({ description: 'Device address' })
+export class ProcessorStatusDto implements ProcessorStatus {
+  @ApiProperty({ description: 'Processor address' })
   address: string;
 
   @ApiProperty({
@@ -38,7 +38,7 @@ export class DeviceStatusDto implements DeviceStatus {
   @ApiProperty({ description: 'Battery level percentage' })
   batteryLevel: number;
 
-  @ApiProperty({ description: 'Whether the device is currently charging' })
+  @ApiProperty({ description: 'Whether the processor is currently charging' })
   isCharging: boolean;
 
   @ApiProperty({
@@ -63,17 +63,17 @@ export class DeviceStatusDto implements DeviceStatus {
 }
 
 export type TemperatureType = keyof NonNullable<
-  DeviceStatusDto['temperatures']
+  ProcessorStatusDto['temperatures']
 >;
 
 export class BulkStatusResponseDto implements BulkStatusResponse {
   @ApiProperty({
-    description: 'Device status information for multiple devices',
+    description: 'Processor status information for multiple processors',
     type: 'object',
     additionalProperties: {
       type: 'object',
-      $ref: '#/components/schemas/DeviceStatusDto',
+      $ref: '#/components/schemas/ProcessorStatusDto',
     },
   })
-  deviceStatuses: Record<string, DeviceStatusDto>;
+  processorStatuses: Record<string, ProcessorStatusDto>;
 }

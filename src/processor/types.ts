@@ -7,7 +7,7 @@ export interface TemperatureReadings {
   ambient?: number;
 }
 
-export interface DeviceStatus {
+export interface ProcessorStatus {
   address: string;
   timestamp: number;
   batteryLevel: number;
@@ -34,15 +34,19 @@ export interface CheckInResponse {
   success: boolean;
 }
 
+export interface StatusesResponse {
+  processorStatuses: ProcessorStatus[];
+}
+
 export interface StatusResponse {
-  deviceStatus: DeviceStatus;
+  processorStatus: ProcessorStatus;
 }
 
 export interface HistoryResponse {
-  history: DeviceStatus[];
+  history: ProcessorStatus[];
 }
 
-export interface DeviceListItem {
+export interface ProcessorListItem {
   address: string;
   lastSeen: number;
   batteryLevel: number;
@@ -52,9 +56,9 @@ export interface DeviceListItem {
 }
 
 export interface ListResponse {
-  devices: DeviceListItem[];
+  devices: ProcessorListItem[];
 }
 
 export interface BulkStatusResponse {
-  deviceStatuses: Record<string, DeviceStatus>;
+  processorStatuses: Record<string, ProcessorStatus>;
 }

@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { ProcessorService } from './processor.service';
 import {
-  DeviceStatusDto,
+  ProcessorStatusDto,
   TemperatureReadingsDto,
   BulkStatusResponseDto,
 } from './dto/device-status.dto';
@@ -34,9 +34,9 @@ import {
   CheckInResponse,
   StatusResponse,
   HistoryResponse,
-  DeviceListItem,
-  ListResponse,
+  ProcessorListItem,
   BulkStatusResponse,
+  type StatusesResponse,
 } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -45,7 +45,7 @@ import { WhitelistService } from '../whitelist/whitelist.service';
 import { ConfigService } from '@nestjs/config';
 
 export class CheckInRequestDto implements CheckInRequest {
-  @ApiProperty({ description: 'Device address' })
+  @ApiProperty({ description: 'Processor address' })
   deviceAddress: string;
 
   @ApiProperty({ description: 'Platform (0 = Android, 1 = iOS)' })
@@ -57,7 +57,7 @@ export class CheckInRequestDto implements CheckInRequest {
   @ApiProperty({ description: 'Battery level percentage' })
   batteryLevel: number;
 
-  @ApiProperty({ description: 'Whether the device is currently charging' })
+  @ApiProperty({ description: 'Whether the processor is currently charging' })
   isCharging: boolean;
 
   @ApiProperty({
@@ -94,64 +94,47 @@ export class CheckInResponseDto implements CheckInResponse {
 
 export class StatusResponseDto implements StatusResponse {
   @ApiProperty({
-    description: 'Device status information',
-    type: DeviceStatusDto,
+    description: 'Processor status information',
+    type: ProcessorStatusDto,
   })
-  deviceStatus: DeviceStatusDto;
+  processorStatus: ProcessorStatusDto;
+}
+
+export class StatusesResponseDto implements StatusesResponse {
+  @ApiProperty({
+    description: 'Processor status information',
+    type: ProcessorStatusDto,
+  })
+  processorStatuses: ProcessorStatusDto[];
 }
 
 export class HistoryResponseDto implements HistoryResponse {
   @ApiProperty({
-    description: 'List of historical device statuses',
-    type: [DeviceStatusDto],
+    description: 'List of historical processor statuses',
+    type: [ProcessorStatusDto],
   })
-  history: DeviceStatusDto[];
-}
-
-export class DeviceListItemDto implements DeviceListItem {
-  @ApiProperty({ description: 'Device address' })
-  address: string;
-
-  @ApiProperty({ description: 'Last seen timestamp' })
-  lastSeen: number;
-
-  @ApiProperty({ description: 'Battery level percentage' })
-  batteryLevel: number;
-
-  @ApiProperty({ description: 'Whether the device is currently charging' })
-  isCharging: boolean;
-
-  @ApiProperty({ description: 'Network type', enum: NetworkTypeEnum })
-  networkType: NetworkTypeEnum;
-
-  @ApiProperty({ description: 'Network SSID' })
-  ssid: string;
-}
-
-export class ListResponseDto implements ListResponse {
-  @ApiProperty({ description: 'List of devices', type: [DeviceListItemDto] })
-  devices: DeviceListItemDto[];
+  history: ProcessorStatusDto[];
 }
 
 // Define template data interfaces
-interface DeviceListTemplateData {
-  devices?: DeviceListItem[];
+interface ProcessorListTemplateData {
+  devices?: ProcessorListItem[];
   error?: string;
 }
 
-interface DeviceStatusTemplateData {
-  deviceStatus?: DeviceStatusDto;
+interface ProcessorStatusTemplateData {
+  processorStatus?: ProcessorStatusDto;
   error?: string;
 }
 
-interface DeviceHistoryTemplateData {
-  deviceAddress: string;
-  history?: DeviceStatusDto[];
+interface ProcessorHistoryTemplateData {
+  processorAddress: string;
+  history?: ProcessorStatusDto[];
   error?: string;
 }
 
-interface DeviceGraphTemplateData {
-  deviceAddress: string;
+interface ProcessorGraphTemplateData {
+  processorAddress: string;
   error?: string;
 }
 
@@ -159,10 +142,10 @@ interface DeviceGraphTemplateData {
 @Controller('processor')
 export class ProcessorController {
   private readonly logger = new Logger(ProcessorController.name);
-  private deviceListTemplate: HandlebarsTemplateDelegate<DeviceListTemplateData>;
-  private deviceStatusTemplate: HandlebarsTemplateDelegate<DeviceStatusTemplateData>;
-  private deviceHistoryTemplate: HandlebarsTemplateDelegate<DeviceHistoryTemplateData>;
-  private deviceGraphTemplate: HandlebarsTemplateDelegate<DeviceGraphTemplateData>;
+  private deviceListTemplate: HandlebarsTemplateDelegate<ProcessorListTemplateData>;
+  private deviceStatusTemplate: HandlebarsTemplateDelegate<ProcessorStatusTemplateData>;
+  private deviceHistoryTemplate: HandlebarsTemplateDelegate<ProcessorHistoryTemplateData>;
+  private deviceGraphTemplate: HandlebarsTemplateDelegate<ProcessorGraphTemplateData>;
 
   constructor(
     private readonly processorService: ProcessorService,
@@ -189,20 +172,24 @@ export class ProcessorController {
       }
 
       // Load and compile templates
-      this.deviceListTemplate = Handlebars.compile<DeviceListTemplateData>(
+      this.deviceListTemplate = Handlebars.compile<ProcessorListTemplateData>(
         fs.readFileSync(path.join(templatePath, 'device-list.html'), 'utf-8'),
       );
-      this.deviceStatusTemplate = Handlebars.compile<DeviceStatusTemplateData>(
-        fs.readFileSync(path.join(templatePath, 'device-status.html'), 'utf-8'),
-      );
+      this.deviceStatusTemplate =
+        Handlebars.compile<ProcessorStatusTemplateData>(
+          fs.readFileSync(
+            path.join(templatePath, 'device-status.html'),
+            'utf-8',
+          ),
+        );
       this.deviceHistoryTemplate =
-        Handlebars.compile<DeviceHistoryTemplateData>(
+        Handlebars.compile<ProcessorHistoryTemplateData>(
           fs.readFileSync(
             path.join(templatePath, 'device-history.html'),
             'utf-8',
           ),
         );
-      this.deviceGraphTemplate = Handlebars.compile<DeviceGraphTemplateData>(
+      this.deviceGraphTemplate = Handlebars.compile<ProcessorGraphTemplateData>(
         fs.readFileSync(path.join(templatePath, 'device-graph.html'), 'utf-8'),
       );
 
@@ -293,7 +280,7 @@ export class ProcessorController {
     }
   }
 
-  @Get('api/devices/:address/status')
+  @Get('api/:address/status')
   @ApiOperation({ summary: 'Get device status' })
   @ApiParam({ name: 'address', description: 'Device address' })
   @ApiResponse({
@@ -305,11 +292,11 @@ export class ProcessorController {
   async getDeviceStatusApi(
     @Param('address') address: string,
   ): Promise<StatusResponseDto> {
-    const response = await this.processorService.getDeviceStatus(address);
+    const response = await this.processorService.getProcessorStatus(address);
     return response as StatusResponseDto;
   }
 
-  @Get('api/devices/:address/history')
+  @Get('api/:address/history')
   @ApiOperation({ summary: 'Get device history' })
   @ApiParam({ name: 'address', description: 'Device address' })
   @ApiQuery({
@@ -335,19 +322,20 @@ export class ProcessorController {
     return response as HistoryResponseDto;
   }
 
-  @Get('api/devices/status')
-  @ApiOperation({ summary: 'Get all device statuses' })
+  @Get('api/status')
+  @ApiOperation({ summary: 'Get all processor statuses' })
   @ApiResponse({
     status: 200,
     description: 'All latest device statuses retrieved successfully',
-    type: HistoryResponseDto,
+    type: StatusesResponseDto,
   })
-  async getAllLatestDeviceStatusesApi(): Promise<HistoryResponseDto> {
-    const response = await this.processorService.getAllLatestDeviceStatuses();
-    return response as HistoryResponseDto;
+  async getAllLatestProcessorStatusesApi(): Promise<StatusesResponseDto> {
+    const response =
+      await this.processorService.getAllLatestProcessorStatuses();
+    return response;
   }
 
-  @Get('api/devices/status/bulk')
+  @Get('api/status/bulk')
   @ApiOperation({ summary: 'Get status for multiple devices' })
   @ApiQuery({
     name: 'addresses',
@@ -363,13 +351,13 @@ export class ProcessorController {
     @Query('addresses') addresses: string,
   ): Promise<BulkStatusResponse> {
     const addressList = addresses.split(',').map((addr) => addr.trim());
-    return this.processorService.getBulkDeviceStatus(addressList);
+    return this.processorService.getBulkProcessorStatus(addressList);
   }
 
   @Get('web/list')
   async getDeviceList(@Res() res: Response): Promise<void> {
     try {
-      const response = await this.processorService.getDeviceList();
+      const response = await this.processorService.getProcessorList();
       const html = this.deviceListTemplate({
         devices: response.devices,
       });
@@ -391,9 +379,9 @@ export class ProcessorController {
     @Res() res: Response,
   ): Promise<void> {
     try {
-      const response = await this.processorService.getDeviceStatus(address);
+      const response = await this.processorService.getProcessorStatus(address);
       const html = this.deviceStatusTemplate({
-        deviceStatus: response.deviceStatus,
+        processorStatus: response.processorStatus,
       });
       res.send(html);
     } catch (error) {
@@ -419,13 +407,13 @@ export class ProcessorController {
         parseInt(limit),
       );
       const html = this.deviceHistoryTemplate({
-        deviceAddress: address,
+        processorAddress: address,
         history: response.history,
       });
       res.send(html);
     } catch (error) {
       const html = this.deviceHistoryTemplate({
-        deviceAddress: address,
+        processorAddress: address,
         error:
           error instanceof Error
             ? error.message
@@ -442,12 +430,12 @@ export class ProcessorController {
   ): Promise<void> {
     try {
       const html = this.deviceGraphTemplate({
-        deviceAddress: address,
+        processorAddress: address,
       });
       res.send(html);
     } catch (error) {
       const html = this.deviceGraphTemplate({
-        deviceAddress: address,
+        processorAddress: address,
         error:
           error instanceof Error ? error.message : 'Failed to load graph page',
       });
@@ -469,9 +457,9 @@ export class ProcessorController {
           this.processorService.cacheService.getProcessorCacheCapacity(),
       },
       deviceStatusCache: {
-        size: this.processorService.cacheService.getDeviceStatusCacheSize(),
+        size: this.processorService.cacheService.getProcessorStatusCacheSize(),
         capacity:
-          this.processorService.cacheService.getDeviceStatusCacheCapacity(),
+          this.processorService.cacheService.getProcessorStatusCacheCapacity(),
       },
       networkTypeCache: {
         size: this.processorService.cacheService.getNetworkTypeCacheSize(),
@@ -496,8 +484,8 @@ export class ProcessorController {
     return {
       processorCache:
         this.processorService.cacheService.getProcessorCacheContents(),
-      deviceStatusCache:
-        this.processorService.cacheService.getDeviceStatusCacheContents(),
+      processorStatusCache:
+        this.processorService.cacheService.getProcessorStatusCacheContents(),
       networkTypeCache:
         this.processorService.cacheService.getNetworkTypeCacheContents(),
       batteryHealthCache:

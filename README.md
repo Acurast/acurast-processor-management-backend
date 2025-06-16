@@ -1,16 +1,16 @@
 # Acurast Processor Management Backend
 
-A management backend for processors on Acurast that allows for storing and retrieving battery percentages and other device status information. This service provides an API for managing device check-ins, monitoring battery levels, and tracking device statuses across the Acurast network.
+A management backend for processors on Acurast that allows for storing and retrieving battery percentages and other processor status information. This service provides an API for managing processor check-ins, monitoring battery levels, and tracking processor statuses across the Acurast network.
 
 ## Features
 
-- Device check-in management
+- Processor check-in management
 - Battery level tracking
-- Device status monitoring
+- Processor status monitoring
 - Network type tracking
 - Battery health monitoring
 - Temperature readings
-- Web interface for device management
+- Web interface for processor management
 - Swagger API documentation
 
 ## API Documentation
@@ -29,47 +29,47 @@ The API is documented using Swagger/OpenAPI specification. You can access the in
 
 - **GET** `/` - Overview
 - **GET** `/api` - API Documentation
-- **GET** `/processor/web/list` - Device list view
-- **GET** `/processor/web/:address/status` - Device status view
-- **GET** `/processor/web/:address/history` - Device history view
-- **GET** `/processor/web/:address/graph` - Device graph view
+- **GET** `/processor/web/list` - Processor list view
+- **GET** `/processor/web/:address/status` - Processor status view
+- **GET** `/processor/web/:address/history` - Processor history view
+- **GET** `/processor/web/:address/graph` - Processor graph view
 
-#### Device Status
+#### Processor Status
 
-- **GET** `/processor/api/devices/:address/status`
+- **GET** `/processor/api/:address/status`
   - Parameters:
-    - `address`: Device address (path parameter)
-  - Returns: `{ deviceStatus: DeviceStatus }`
+    - `address`: Processor address (path parameter)
+  - Returns: `{ processorStatus: ProcessorStatus }`
   - Response Codes:
-    - 200: Device status retrieved successfully
-    - 404: Device not found
+    - 200: Processor status retrieved successfully
+    - 404: Processor not found
 
-#### Device History
+#### Processor History
 
-- **GET** `/processor/api/devices/:address/history`
+- **GET** `/processor/api/:address/history`
   - Parameters:
-    - `address`: Device address (path parameter)
+    - `address`: Processor address (path parameter)
     - `limit`: Number of history entries to return (query parameter, optional, default: 10)
-  - Returns: `{ history: DeviceStatus[] }`
+  - Returns: `{ history: ProcessorStatus[] }`
   - Response Codes:
-    - 200: Device history retrieved successfully
-    - 404: Device not found
+    - 200: Processor history retrieved successfully
+    - 404: Processor not found
 
-#### Bulk Device Status
+#### Bulk Processor Status
 
-- **GET** `/processor/api/devices/status/bulk`
+- **GET** `/processor/api/status/bulk`
   - Parameters:
     - `addresses`: Comma-separated list of device addresses (query parameter)
-  - Returns: `{ deviceStatuses: Record<string, DeviceStatus> }`
+  - Returns: `{ processorStatuses: Record<string, ProcessorStatus> }`
   - Response Codes:
-    - 200: Device statuses retrieved successfully
+    - 200: Processor statuses retrieved successfully
 
 ```bash
 # Example
-/processor/api/devices/status/bulk?addresses=addr1,addr2,addr3
+/processor/api/status/bulk?addresses=addr1,addr2,addr3
 ```
 
-#### Device Check-in (done by processor)
+#### Processor Check-in (done by processor)
 
 - **POST** `/processor/check-in`
   - Headers: `X-Device-Signature` (required)
@@ -99,14 +99,14 @@ The API is documented using Swagger/OpenAPI specification. You can access the in
 
 ### Data Types
 
-#### DeviceStatus
+#### ProcessorStatus
 
 ```typescript
-interface DeviceStatus {
-  address: string; // Device address
+interface ProcessorStatus {
+  address: string; // Processor address
   timestamp: number; // Unix timestamp of the status update
   batteryLevel: number; // Battery level percentage (0-100)
-  isCharging: boolean; // Whether the device is currently charging
+  isCharging: boolean; // Whether the processor is currently charging
   batteryHealth?: string; // Battery health state
   temperatures?: {
     // Temperature readings
