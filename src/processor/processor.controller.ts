@@ -339,11 +339,11 @@ export class ProcessorController {
   @ApiOperation({ summary: 'Get all device statuses' })
   @ApiResponse({
     status: 200,
-    description: 'All device statuses retrieved successfully',
+    description: 'All latest device statuses retrieved successfully',
     type: HistoryResponseDto,
   })
-  async getAllDeviceStatusesApi(): Promise<HistoryResponseDto> {
-    const response = await this.processorService.getAllDeviceStatuses();
+  async getAllLatestDeviceStatusesApi(): Promise<HistoryResponseDto> {
+    const response = await this.processorService.getAllLatestDeviceStatuses();
     return response as HistoryResponseDto;
   }
 

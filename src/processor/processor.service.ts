@@ -406,17 +406,26 @@ export class ProcessorService {
     };
   }
 
-  async getAllDeviceStatuses(): Promise<HistoryResponse> {
-    const history = await this.deviceStatusRepository.find({
-      order: { timestamp: 'DESC' },
-      relations: [
-        'processor',
-        'networkType',
-        'ssid',
-        'batteryHealth',
-        'temperatureReadings',
-      ],
-    });
+  async getAllLatestDeviceStatuses(): Promise<HistoryResponse> {
+    const history = await this.deviceStatusRepository
+      .createQueryBuilder('status')
+      .innerJoinAndSelect('status.processor', 'processor')
+      .leftJoinAndSelect('status.networkType', 'networkType')
+      .leftJoinAndSelect('status.ssid', 'ssid')
+      .leftJoinAndSelect('status.batteryHealth', 'batteryHealth')
+      .leftJoinAndSelect('status.temperatureReadings', 'temperatureReadings')
+      .where((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select('MAX(s2.timestamp)')
+          .from(DeviceStatus, 's2')
+          .innerJoin('s2.processor', 'p2')
+          .where('p2.address = processor.address')
+          .getQuery();
+        return 'status.timestamp = ' + subQuery;
+      })
+      .orderBy('status.timestamp', 'DESC')
+      .getMany();
 
     return {
       history: history.map((status) => this.transformToDto(status)),
