@@ -218,22 +218,18 @@
           const data = await response.json();
           console.log('Received data:', data);
 
-          const devices = data.history.reduce((acc, status) => {
-            if (!acc[status.address]) {
-              acc[status.address] = {
-                address: status.address,
-                lastSeen: status.timestamp,
-                batteryLevel: status.batteryLevel,
-                isCharging: Boolean(status.isCharging),
-                networkType: status.networkType,
-                ssid: status.ssid,
-              };
-            }
-            return acc;
-          }, {});
+          // Transform processorStatuses to the format expected by renderDevices
+          const devices = data.processorStatuses.map((status) => ({
+            address: status.address,
+            lastSeen: status.timestamp,
+            batteryLevel: status.batteryLevel,
+            isCharging: Boolean(status.isCharging),
+            networkType: status.networkType,
+            ssid: status.ssid,
+          }));
 
           console.log('Transformed devices:', devices);
-          renderDevices(Object.values(devices));
+          renderDevices(devices);
         } catch (error) {
           console.error('Error fetching devices:', error);
           showError(`Error loading devices: ${error.message}`);

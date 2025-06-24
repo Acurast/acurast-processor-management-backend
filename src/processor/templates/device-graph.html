@@ -198,7 +198,7 @@
 
         const batteryLevels = data.map((d) => d.batteryLevel);
         const temperatures = data.flatMap((d) =>
-          Object.values(d.temperature || {}).filter((v) => v !== undefined),
+          Object.values(d.temperatures || {}).filter((v) => v !== undefined),
         );
         const maxTemp = Math.max(...temperatures, 0);
 
@@ -237,7 +237,7 @@
         ctx.strokeStyle = '#F44336';
         data.forEach((d, i) => {
           const temp =
-            Object.values(d.temperature || {}).find((v) => v !== undefined) ||
+            Object.values(d.temperatures || {}).find((v) => v !== undefined) ||
             0;
           const x = padding + ((d.timestamp - minTime) / timeRange) * width;
           const y = canvas.height - padding - (temp / maxTemp) * height;

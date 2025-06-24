@@ -190,7 +190,7 @@
               <div class="info-section">
                 <div class="info-title">Temperature Readings</div>
                 <div class="temperature-grid">
-                  ${Object.entries(deviceStatus.temperature || {})
+                  ${Object.entries(deviceStatus.temperatures || {})
                     .map(([key, value]) =>
                       value
                         ? `
@@ -222,7 +222,7 @@
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           const data = await response.json();
-          renderStatus(data.deviceStatus);
+          renderStatus(data.processorStatus);
         } catch (error) {
           console.error('Error fetching device status:', error);
           showError(`Error loading device status: ${error.message}`);

@@ -243,7 +243,7 @@
                   <td>${entry.ssid || '-'}</td>
                   <td>
                     <div class="temperature-grid">
-                      ${Object.entries(entry.temperature || {})
+                      ${Object.entries(entry.temperatures || {})
                         .map(([key, value]) =>
                           value
                             ? `
