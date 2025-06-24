@@ -273,7 +273,7 @@
 
         try {
           const response = await fetch(
-            `/processor/api/devices/${deviceAddress}/history`,
+            `/processor/api/${deviceAddress}/history`,
           );
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

@@ -216,7 +216,7 @@
 
         try {
           const response = await fetch(
-            `/processor/api/devices/${deviceAddress}/status`,
+            `/processor/api/${deviceAddress}/status`,
           );
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

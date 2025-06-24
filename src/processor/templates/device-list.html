@@ -211,7 +211,7 @@
         content.innerHTML = '<div class="loading">Loading devices...</div>';
 
         try {
-          const response = await fetch('/processor/api/devices/status');
+          const response = await fetch('/processor/api/status');
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }

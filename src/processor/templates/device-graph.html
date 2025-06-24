@@ -160,7 +160,7 @@
         const hours = parseInt(document.getElementById('time-range').value);
         try {
           const response = await fetch(
-            `/processor/api/devices/${deviceAddress}/history?limit=${hours * 60}`,
+            `/processor/api/${deviceAddress}/history?limit=${hours * 60}`,
           );
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
