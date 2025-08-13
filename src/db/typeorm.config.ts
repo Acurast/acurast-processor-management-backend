@@ -6,6 +6,7 @@ import { NetworkType } from '../processor/entities/network-type.entity';
 import { Processor } from '../processor/entities/processor.entity';
 import { BatteryHealth } from '../processor/entities/battery-health.entity';
 import { TemperatureReading } from '../processor/entities/temperature-reading.entity';
+import { Manager } from '../processor/entities/manager.entity';
 import { Ssid } from '../processor/entities/ssid.entity';
 
 export const getTypeormConfig = (): DataSourceOptions => {
@@ -16,6 +17,7 @@ export const getTypeormConfig = (): DataSourceOptions => {
     BatteryHealth,
     Ssid,
     TemperatureReading,
+    Manager,
   ];
 
   const sharedConfig = {

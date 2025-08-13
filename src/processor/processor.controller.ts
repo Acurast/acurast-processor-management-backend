@@ -443,6 +443,18 @@ export class ProcessorController {
     }
   }
 
+  @Get('api/manager/:address/processors')
+  @ApiOperation({
+    summary: 'Get all processor addresses for a manager by address',
+  })
+  @ApiParam({ name: 'address', description: 'Manager address' })
+  @ApiResponse({ status: 200, description: 'Processors addresses list' })
+  async getProcessorsByManagerAddressApi(
+    @Param('address') address: string,
+  ): Promise<string[]> {
+    return this.processorService.getProcessorsByManagerAddress(address);
+  }
+
   @Get('debug/cache/status')
   @ApiOperation({ summary: 'Get cache status information' })
   @ApiResponse({

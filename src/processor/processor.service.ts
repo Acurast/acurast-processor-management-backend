@@ -522,4 +522,18 @@ export class ProcessorService {
 
     return { processorStatuses: statusMap };
   }
+
+  async getProcessorsByManagerAddress(
+    managerAddress: string,
+  ): Promise<string[]> {
+    const rows = await this.processorRepository
+      .createQueryBuilder('processor')
+      .innerJoin('processor.manager', 'manager', 'manager.address = :address', {
+        address: managerAddress,
+      })
+      .select('processor.address', 'address')
+      .getRawMany<{ address: string }>();
+
+    return rows.map((r) => r.address);
+  }
 }
