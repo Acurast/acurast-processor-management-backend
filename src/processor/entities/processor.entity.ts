@@ -32,11 +32,4 @@ export class Processor {
   @Index()
   @Column({ type: 'int', nullable: true })
   managerId: number | null;
-
-  // @Column({
-  //   type: 'timestamp',
-  //   nullable: true,
-  //   default: () => 'CURRENT_TIMESTAMP',
-  // })
-  // lastUpdated: Date | null;
 }

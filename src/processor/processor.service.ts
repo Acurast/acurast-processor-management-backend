@@ -31,6 +31,8 @@ import { TemperatureReading } from './entities/temperature-reading.entity';
 import { CacheService } from './cache.service';
 import { SignatureService } from './signature.service';
 import { NetworkTypeEnum, type BatteryHealthState } from './enums';
+import { ManagerService } from './manager.service';
+import { Manager } from './entities/manager.entity';
 
 @Injectable()
 export class ProcessorService {
@@ -53,9 +55,12 @@ export class ProcessorService {
     private ssidRepository: Repository<Ssid>,
     @InjectRepository(TemperatureReading)
     private temperatureReadingRepository: Repository<TemperatureReading>,
+    @InjectRepository(Manager)
+    private managerRepository: Repository<Manager>,
     private dataSource: DataSource,
     public cacheService: CacheService,
     private signatureService: SignatureService,
+    private managerService: ManagerService,
   ) {
     // Initialize batch processing
     this.timer = setInterval(() => {
@@ -526,6 +531,22 @@ export class ProcessorService {
   async getProcessorsByManagerAddress(
     managerAddress: string,
   ): Promise<string[]> {
+    // If manager exists and is stale (> 24h), refresh from chain first
+    const existingManager = await this.managerRepository.findOne({
+      where: { address: managerAddress },
+    });
+    if (existingManager) {
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const lastUpdatedMs = existingManager.lastUpdated
+        ? new Date(existingManager.lastUpdated).getTime()
+        : 0;
+      if (Date.now() - lastUpdatedMs > ONE_DAY_MS) {
+        return this.managerService.populateManagerAndProcessorsByAddress(
+          managerAddress,
+        );
+      }
+    }
+
     const rows = await this.processorRepository
       .createQueryBuilder('processor')
       .innerJoin('processor.manager', 'manager', 'manager.address = :address', {
@@ -534,6 +555,13 @@ export class ProcessorService {
       .select('processor.address', 'address')
       .getRawMany<{ address: string }>();
 
-    return rows.map((r) => r.address);
+    if (rows.length > 0) {
+      return rows.map((r) => r.address);
+    }
+
+    // Populate from chain if not found locally
+    return this.managerService.populateManagerAndProcessorsByAddress(
+      managerAddress,
+    );
   }
 }

@@ -12,4 +12,7 @@ export class Manager {
 
   @OneToMany(() => Processor, (processor) => processor.manager)
   processors: Processor[];
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  lastUpdated: Date;
 }

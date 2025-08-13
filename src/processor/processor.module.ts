@@ -12,6 +12,7 @@ import { Ssid } from './entities/ssid.entity';
 import { TemperatureReading } from './entities/temperature-reading.entity';
 import { Manager } from './entities/manager.entity';
 import { WhitelistModule } from '../whitelist/whitelist.module';
+import { ManagerService } from './manager.service';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { WhitelistModule } from '../whitelist/whitelist.module';
     WhitelistModule,
   ],
   controllers: [ProcessorController],
-  providers: [ProcessorService, CacheService, SignatureService],
+  providers: [ProcessorService, CacheService, SignatureService, ManagerService],
   exports: [CacheService],
 })
 export class ProcessorModule {}
